@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>The Quiet Machine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600&family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: an operations table at night — a cold schematic city under glass on the left, a lit paper dossier on the right. */
+:root{
+  --ink:#0d1117; --ink-2:#151c25; --ink-3:#1d2630; --line:#2c3744; --line-2:#3b4857;
+  --paper:#e9e3d4; --paper-2:#dcd4c1; --paper-line:#c3b9a2; --paper-ink:#1f1d18; --paper-mute:#6b6557;
+  --fg:#ccd4df; --mute:#7f8a99;
+  --signal:#d8503c; --amber:#e0a93b; --safe:#5c9e83; --cold:#6f9bc4;
+  --display:'Oswald',ui-sans-serif,system-ui,sans-serif;
+  --body:'Spectral',Georgia,serif;
+  --data:'IBM Plex Mono',ui-monospace,monospace;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--ink); color:var(--fg);
+  font-family:var(--body); font-size:15px; line-height:1.6;
+  background-image:radial-gradient(1200px 500px at 20% -10%, #18212c 0%, transparent 70%);
+}
+.wrap{
+  max-width:1180px; margin:0 auto;
+  padding-left:max(16px, env(safe-area-inset-left,0px));
+  padding-right:max(16px, env(safe-area-inset-right,0px));
+  padding-block:28px 56px;
+}
+h1,h2,h3,.lbl,button,.code{font-family:var(--display)}
+.lbl{
+  font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--mute); font-weight:500;
+}
+header.top{display:flex; flex-wrap:wrap; gap:16px 28px; align-items:flex-end; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:18px; margin-bottom:22px}
+h1{font-size:30px; font-weight:300; letter-spacing:.1em; text-transform:uppercase; margin:0; line-height:1.1}
+h1 b{font-weight:600; color:#fff}
+.sub{font-size:13px; color:var(--mute); font-style:italic; margin:6px 0 0; max-width:48ch}
+.gauges{display:flex; gap:22px; flex-wrap:wrap}
+.gauge{min-width:72px}
+.gauge .v{font-family:var(--data); font-size:21px; font-weight:600; color:#fff; font-variant-numeric:tabular-nums; line-height:1.1}
+.gauge .v.hot{color:var(--signal)}
+.gauge .v.amb{color:var(--amber)}
+
+.board{display:grid; grid-template-columns:1fr; gap:20px}
+@media(min-width:920px){ .board{grid-template-columns:1.12fr .88fr; align-items:start} }
+
+/* ---- handler side ---- */
+.pane{min-width:0; background:var(--ink-2); border:1px solid var(--line); border-radius:3px}
+.pane > .hd{display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap}
+.pane .bd{padding:16px; min-width:0}
+.map{width:100%; height:auto; display:block; background:#0b0f14; border-radius:2px}
+.node-hit{cursor:pointer}
+.node-c{fill:var(--ink-3); stroke:var(--line-2); stroke-width:1.5}
+.node-c.sel{fill:#243444; stroke:var(--cold)}
+.node-c.reach{stroke:var(--amber); stroke-dasharray:3 3}
+.node-c.clear{fill:#16302a; stroke:var(--safe); stroke-width:2.5}
+.node-c.danger{fill:#331a14; stroke:var(--signal); stroke-width:2.5}
+.node-c.here{fill:#4a3a16; stroke:var(--amber); stroke-width:2.5}
+.node-c.goal{stroke:var(--safe); stroke-width:2}
+.node-t{font-family:var(--data); font-size:8.5px; fill:var(--mute); text-anchor:middle; pointer-events:none; letter-spacing:.04em}
+.node-t.on{fill:#dfe6ef}
+.edge{stroke:var(--line); stroke-width:1.5}
+.edge.used{stroke:var(--cold); stroke-width:2.5}
+.pm{font-family:var(--data); font-size:8px; font-weight:600; fill:#2a0f0b; text-anchor:middle}
+.pmb{fill:var(--signal); rx:1.5}
+
+.scrub{display:flex; gap:4px; flex-wrap:wrap; margin-top:12px}
+.scrub button{flex:1 1 0; min-width:40px}
+button{
+  font-family:var(--display); font-size:12px; letter-spacing:.1em; text-transform:uppercase; font-weight:500;
+  background:var(--ink-3); color:var(--fg); border:1px solid var(--line-2); border-radius:2px;
+  padding:9px 12px; cursor:pointer; transition:background .12s, color .12s, border-color .12s;
+}
+button:hover:not(:disabled){background:#27323e; color:#fff}
+button:disabled{opacity:.38; cursor:not-allowed}
+button:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+button.go{background:var(--amber); color:#241a04; border-color:var(--amber); font-weight:600}
+button.go:hover:not(:disabled){background:#efbb4d; color:#241a04}
+button.on{background:#243444; border-color:var(--cold); color:#fff}
+.row{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px}
+.row button{flex:1 1 auto}
+
+.rosterwrap{overflow-x:auto; margin-top:4px; min-width:0}
+.grid{display:grid; grid-template-columns:86px repeat(9, minmax(44px,1fr)); gap:2px; min-width:520px}
+.grid > div{padding:6px 2px; text-align:center; font-family:var(--data); font-size:11px; font-variant-numeric:tabular-nums}
+.grid .rh{text-align:left; padding-left:8px; font-family:var(--display); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--mute); display:flex; align-items:center}
+.grid .th{color:var(--mute); font-size:10px; letter-spacing:.04em; cursor:pointer; border-bottom:1px solid var(--line)}
+.grid .th.on{color:var(--amber); border-bottom-color:var(--amber)}
+.grid .c{background:var(--ink-3); border-radius:2px; color:var(--mute)}
+.grid .c.pat{background:#2e1a16; color:#e8a295}
+.grid .c.div{background:#4a1f17; color:#ffb9ac; box-shadow:inset 0 0 0 1px var(--signal)}
+.grid .c.you{background:#243444; color:#dce8f5}
+.grid .c.hit{background:var(--signal); color:#2a0f0b; font-weight:600}
+.grid .c.cleared{background:#4a3a16; color:var(--amber); font-weight:600}
+.grid .c.goalhit{background:var(--safe); color:#0c1a15; font-weight:600}
+.grid .c.empty{background:transparent}
+.hound-div .rh{color:var(--signal)}
+
+.key{display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; font-size:11px; color:var(--mute); font-family:var(--data)}
+.key i{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px}
+.verdict{margin-top:14px; padding:10px 12px; border-radius:2px; font-size:13.5px; border:1px solid var(--line-2); background:var(--ink-3)}
+.verdict.bad{border-color:var(--signal); background:#2a1512; color:#f0b6ab}
+.verdict.good{border-color:var(--safe); background:#132520; color:#a9ddc8}
+
+/* ---- operative side: a lit page on the desk ---- */
+.dossier{min-width:0; background:var(--paper); color:var(--paper-ink); border-radius:3px; border:1px solid var(--paper-line); box-shadow:0 18px 50px rgba(0,0,0,.55); overflow:hidden}
+.dossier .hd{padding:14px 18px; border-bottom:1px solid var(--paper-line); background:var(--paper-2); display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap}
+.dossier .hd .lbl{color:var(--paper-mute)}
+.dossier .bd{padding:18px}
+.dossier h2{font-size:17px; letter-spacing:.14em; text-transform:uppercase; font-weight:500; margin:0 0 2px; color:var(--paper-ink)}
+.dossier p{margin:0 0 12px; font-size:15px}
+.dossier p.sm{font-size:13.5px; color:var(--paper-mute); font-style:italic}
+.ppl{list-style:none; margin:0; padding:0; border-top:1px solid var(--paper-line)}
+.ppl li{display:flex; gap:10px; align-items:baseline; padding:8px 0; border-bottom:1px solid var(--paper-line); font-size:13.5px}
+.ppl .code{font-family:var(--data); font-size:10.5px; letter-spacing:.06em; color:var(--paper-mute); min-width:34px; padding-top:2px}
+.ppl .nm{font-weight:600}
+.ppl .nt{color:var(--paper-mute); font-style:italic; font-size:12.5px}
+.ppl li.burnt{opacity:.45; text-decoration:line-through}
+.ppl li.burnt .nt{text-decoration:none}
+.log{font-family:var(--data); font-size:12.5px; line-height:1.85; border-top:1px solid var(--paper-line); padding-top:12px; max-height:260px; overflow-y:auto}
+.log div{display:flex; gap:10px}
+.log .t{color:var(--paper-mute); min-width:46px}
+.log .bad{color:#9c2d1c; font-weight:600}
+.log .good{color:#2c6a52; font-weight:600}
+.choice{border:1px solid var(--paper-line); background:#f2eee2; border-radius:2px; padding:14px; margin-top:14px}
+.choice h3{font-size:13px; letter-spacing:.14em; text-transform:uppercase; margin:0 0 8px; color:#9c2d1c}
+.opt{display:block; width:100%; text-align:left; background:var(--paper); color:var(--paper-ink); border:1px solid var(--paper-line); margin-top:7px; padding:10px 12px; font-family:var(--body); font-size:14px; text-transform:none; letter-spacing:0}
+.opt:hover:not(:disabled){background:#fff; border-color:var(--paper-ink); color:var(--paper-ink)}
+.opt b{font-family:var(--display); font-size:12.5px; letter-spacing:.1em; text-transform:uppercase; display:block; margin-bottom:1px}
+.opt .cost{font-family:var(--data); font-size:11.5px; color:var(--paper-mute)}
+.opt.chosen{background:#e5dbbf; border-color:var(--paper-ink)}
+.ledger{border-top:2px solid var(--paper-ink); margin-top:16px; padding-top:12px}
+.ledger li{border-bottom:1px dotted var(--paper-line); padding:9px 0; font-size:13.5px; list-style:none}
+.ledger li b{font-family:var(--display); letter-spacing:.1em; text-transform:uppercase; font-size:11.5px; display:block; color:#9c2d1c}
+.ledger ul{margin:0; padding:0}
+
+.note{font-size:12.5px; color:var(--mute); border-left:2px solid var(--line-2); padding-left:12px; margin:26px 0 0; max-width:70ch}
+.note b{color:var(--fg); font-family:var(--display); letter-spacing:.08em; text-transform:uppercase; font-size:11px; font-weight:500}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>The Quiet <b>Machine</b></h1>
+      <p class="sub">Prototype — Mission 01, “The Four A.M. Barge”. Two seats, one night. Varsk, under the Prefecture.</p>
+    </div>
+    <div class="gauges">
+      <div class="gauge"><div class="lbl">Clock</div><div class="v" id="g-clock">03:00</div></div>
+      <div class="gauge"><div class="lbl">Favours left</div><div class="v amb" id="g-fav">2</div></div>
+      <div class="gauge"><div class="lbl">Heat</div><div class="v" id="g-heat">0</div></div>
+      <div class="gauge"><div class="lbl">People spent</div><div class="v" id="g-burn">0</div></div>
+    </div>
+  </header>
+
+  <div class="board">
+    <!-- HANDLER -->
+    <section class="pane">
+      <div class="hd">
+        <div><div class="lbl">Seat one — Handler</div><div style="font-family:var(--display);letter-spacing:.08em;font-size:14px">THE LEDGER</div></div>
+        <div class="lbl" id="h-mode">Plan the line</div>
+      </div>
+      <div class="bd">
+        <svg class="map" id="map" viewBox="0 0 420 300" role="img" aria-label="Schematic map of Varsk"></svg>
+
+        <div class="lbl" style="margin-top:14px">Red squares = patrols at <span id="scrub-when" style="color:var(--amber)">03:00</span> · click another time to look ahead</div>
+        <div class="scrub" id="scrub"></div>
+
+        <div style="margin-top:18px"><div class="lbl" style="margin-bottom:4px">Stolen duty roster — tonight</div>
+        <p style="font-size:12.5px;color:var(--mute);margin:0 0 8px;max-width:64ch">Each column is twenty minutes of the night. Wren's row must never show the same place as a patrol's row in the same column.</p></div>
+        <div class="rosterwrap"><div class="grid" id="roster"></div></div>
+        <div class="key">
+          <span><i style="background:#2e1a16"></i>patrol</span>
+          <span><i style="background:#243444"></i>Wren</span>
+          <span><i style="background:var(--signal)"></i>caught</span>
+          <span><i style="background:#4a3a16"></i>favour spent</span>
+          <span><i style="background:var(--safe)"></i>docks</span>
+        </div>
+
+        <div class="row" id="controls"></div>
+        <div class="verdict" id="verdict">Click a node next to Wren to extend the line. Click the node she is already on to make her wait there. She has to be at the <b>Customs Docks</b> by 05:40 — the barge does not wait.</div>
+      </div>
+    </section>
+
+    <!-- OPERATIVE -->
+    <section class="dossier">
+      <div class="hd">
+        <div><div class="lbl">Seat two — Operative</div><h2>Wren</h2></div>
+        <div class="lbl" id="o-state">Briefing</div>
+      </div>
+      <div class="bd" id="dossier-body"></div>
+    </section>
+  </div>
+
+  <p class="note"><b>How this works</b><br>
+  You are one of two players. This side plans; the page on the right is the other player's, and in a real build they would be on two different screens, talking. The puzzle is only this: walk Wren from the Rail Yard to the Customs Docks without ever standing where a patrol is standing. Green circle = safe when she gets there. Red circle = not. Clicking the circle she is on makes her wait twenty minutes. If you get stuck, press <b>Show me a clean line</b> and watch what it does — then try to beat it.<br><br>
+  The point of the whole design is the choice it hides: there is no four-move answer that costs nobody, and a five-move answer that costs nobody exists. Spending a person is always faster. The game lets you, and then tells you what happened to them.</p>
+</div>
+
+<script>
+/* ============================= CITY ============================= */
+const NODES = [
+  {id:'yard',   code:'YRD', name:'Rail Yard',        x:55,  y:255, contact:null,
+   note:'Home. They stopped checking here two winters ago.'},
+  {id:'tram',   code:'TRM', name:'Tram Depot',       x:58,  y:150, contact:'Ilse Varga',
+   note:'Signs off the night rosters. That is how you have this one.'},
+  {id:'press',  code:'PRS', name:'The Printworks',   x:122, y:62,  contact:'Dov Reiner',
+   note:'Prints ration coupons. And other things, after one in the morning.'},
+  {id:'bakery', code:'BKR', name:'Halle’s Bakery',   x:152, y:248, contact:'Marek Halle',
+   note:'Bakes at four. His daughter Ivka sleeps above the ovens.'},
+  {id:'square', code:'SQR', name:'Cathedral Square', x:178, y:152, contact:null,
+   note:'Open ground. Nothing to stand behind and nobody to ask.'},
+  {id:'cafe',   code:'CAF', name:'Café Vrba',        x:268, y:100, contact:'Hana Vrba',
+   note:'Knows which officers drink, and which hour they stop being careful.'},
+  {id:'clinic', code:'CLN', name:'Night Clinic',     x:238, y:252, contact:'Dr. Elen Sabo',
+   note:'Signs death certificates that are not strictly true.'},
+  {id:'locks',  code:'LCK', name:'River Locks',      x:330, y:196, contact:'Pavel Kott',
+   note:'Opens the gate for the four a.m. barge. Has done for eleven years.'},
+  {id:'docks',  code:'DCK', name:'Customs Docks',    x:382, y:128, contact:null,
+   note:'The barge. 05:40. It does not wait and it does not come back.'},
+];
+const EDGES = [['yard','bakery'],['yard','tram'],['bakery','square'],['bakery','clinic'],
+  ['tram','square'],['tram','press'],['square','cafe'],['press','cafe'],['press','clinic'],
+  ['clinic','locks'],['cafe','docks'],['locks','docks'],['cafe','locks']];
+
+const PATROLS = [
+  {id:'kestrel', name:'Kestrel', roster:['square','cafe','docks','cafe','square','cafe','docks','cafe','square']},
+  {id:'hound',   name:'Hound',   roster:['clinic','locks','cafe','locks','clinic','press','clinic','locks','docks']},
+  {id:'vane',    name:'Vane',    roster:['tram','press','cafe','press','tram','square','cafe','square','tram']},
+];
+const DIVERT = {patrol:'hound', from:4, to:5, node:'locks'};
+const START='yard', GOAL='docks', BUDGET=8, PAUSE_T=3;
+
+const N = {}; NODES.forEach(n=>N[n.id]=n);
+const ADJ = {}; NODES.forEach(n=>ADJ[n.id]=[]);
+EDGES.forEach(([a,b])=>{ADJ[a].push(b); ADJ[b].push(a);});
+const clock = t => '0'+(3+Math.floor(t/3))+':'+String((t%3)*20).padStart(2,'0');
+function bfs(from,to){
+  if(from===to) return [from];
+  const prev={[from]:null}, q=[from];
+  while(q.length){ const c=q.shift();
+    for(const nx of ADJ[c]) if(!(nx in prev)){ prev[nx]=c; if(nx===to){const p=[];let k=nx;while(k!==null){p.unshift(k);k=prev[k];}return p;} q.push(nx);} }
+  return null;
+}
+
+/* ============================= STATE ============================= */
+let S;
+function freshState(){ return {
+  phase:'plan', route:[START], burns:[], heat:0, viewTick:0, pin:null,
+  diverted:false, runT:0, log:[], improv:null, rerouting:false, rerouteTail:null,
+  outcome:null, timer:null
+};}
+const clearedKey = (n,t)=>n+'@'+t;
+function clearedSet(){ const s=new Set(); S.burns.forEach(b=>{s.add(clearedKey(b.node,b.tick)); s.add(clearedKey(b.node,b.tick+1));}); return s; }
+function patrolNode(p,t){
+  if(S.diverted && p.id===DIVERT.patrol && t>=DIVERT.from && t<=DIVERT.to) return DIVERT.node;
+  return p.roster[Math.min(t,BUDGET)];
+}
+function isDivertCell(p,t){ return S.diverted && p.id===DIVERT.patrol && t>=DIVERT.from && t<=DIVERT.to; }
+function catcherAt(node,t,cl){
+  if(cl.has(clearedKey(node,t))) return null;
+  for(const p of PATROLS) if(patrolNode(p,t)===node) return p.name;
+  return null;
+}
+function checkRoute(route){
+  const cl=clearedSet();
+  for(let t=0;t<route.length;t++){ const c=catcherAt(route[t],t,cl); if(c) return {t, node:route[t], patrol:c}; }
+  return null;
+}
+
+/* ============================= MAP ============================= */
+function drawMap(){
+  const t=S.viewTick, used=new Set();
+  const r = S.phase==='plan' ? S.route : (S.rerouting&&S.rerouteTail?S.rerouteTail:S.route);
+  for(let i=1;i<r.length;i++) if(r[i]!==r[i-1]) used.add([r[i-1],r[i]].sort().join('|'));
+  const head = S.rerouting && S.rerouteTail ? S.rerouteTail[S.rerouteTail.length-1]
+             : S.phase==='plan' ? S.route[S.route.length-1]
+             : S.route[Math.min(S.runT,S.route.length-1)];
+  const planning = S.phase==='plan' || S.rerouting;
+  const nextT = S.rerouting ? PAUSE_T + (S.rerouteTail?S.rerouteTail.length:1) : S.route.length;
+  const cl0 = clearedSet(), step = {};
+  if(planning && nextT<=BUDGET) ADJ[head].forEach(nd=>{ step[nd] = catcherAt(nd,nextT,cl0) ? 'danger' : 'clear'; });
+  const onLine = new Set(r);
+  let svg='';
+  EDGES.forEach(([a,b])=>{
+    const k=[a,b].sort().join('|');
+    svg+=`<line class="edge${used.has(k)?' used':''}" x1="${N[a].x}" y1="${N[a].y}" x2="${N[b].x}" y2="${N[b].y}"/>`;
+  });
+  NODES.forEach(n=>{
+    let cls='node-c';
+    if(n.id===GOAL) cls+=' goal';
+    if(onLine.has(n.id)) cls+=' sel';
+    if(step[n.id]) cls+=' '+step[n.id];
+    if(n.id===head) cls+=' here';
+    svg+=`<g class="node-hit" data-node="${n.id}"><circle class="${cls}" cx="${n.x}" cy="${n.y}" r="15"/>`;
+    svg+=`<text class="node-t${onLine.has(n.id)?' on':''}" x="${n.x}" y="${n.y+3.5}">${n.code}</text>`;
+    svg+=`<text class="node-t" x="${n.x}" y="${n.y+27}" style="font-size:7.5px">${n.name.toUpperCase()}</text></g>`;
+  });
+  const occ={};
+  PATROLS.forEach(p=>{ const nd=patrolNode(p,t); (occ[nd]=occ[nd]||[]).push(p); });
+  Object.keys(occ).forEach(nd=>{
+    occ[nd].forEach((p,i)=>{
+      const x=N[nd].x-18+i*13, y=N[nd].y-27;
+      svg+=`<rect class="pmb" x="${x}" y="${y}" width="11" height="11"/><text class="pm" x="${x+5.5}" y="${y+8.3}">${p.name[0]}</text>`;
+    });
+  });
+  const mp=document.getElementById('map'); mp.innerHTML=svg;
+  mp.querySelectorAll('[data-node]').forEach(g=>g.addEventListener('click',()=>onNodeClick(g.dataset.node)));
+}
+function onNodeClick(id){
+  if(S.phase==='plan'){
+    S.pin=null;
+    const last=S.route[S.route.length-1];
+    if(id===last){ if(S.route.length-1<BUDGET) S.route.push(id); }
+    else if(ADJ[last].includes(id) && S.route.length-1<BUDGET) S.route.push(id);
+    else return;
+    render();
+  } else if(S.rerouting){
+    const last=S.rerouteTail[S.rerouteTail.length-1];
+    if(ADJ[last].includes(id)){ S.rerouteTail.push(id); render(); }
+  }
+}
+
+/* ============================= ROSTER ============================= */
+function drawRoster(){
+  const cl=clearedSet(), g=document.getElementById('roster');
+  let h='<div class="rh"></div>';
+  for(let t=0;t<=BUDGET;t++) h+=`<div class="th${t===S.viewTick?' on':''}" data-t="${t}">${clock(t)}</div>`;
+  PATROLS.forEach(p=>{
+    h+=`<div class="rh${isDivertCell(p,S.viewTick)?' off':''}" style="${S.diverted&&p.id===DIVERT.patrol?'color:var(--signal)':''}">${p.name}${S.diverted&&p.id===DIVERT.patrol?' ✦':''}</div>`;
+    for(let t=0;t<=BUDGET;t++){ const nd=patrolNode(p,t);
+      h+=`<div class="c ${isDivertCell(p,t)?'div':'pat'}">${N[nd].code}</div>`; }
+  });
+  h+='<div class="rh" style="color:var(--cold)">Wren</div>';
+  const hit=checkRoute(S.route);
+  for(let t=0;t<=BUDGET;t++){
+    if(t>=S.route.length){ h+='<div class="c empty"></div>'; continue; }
+    const nd=S.route[t]; let c='you', mark=N[nd].code;
+    if(hit && hit.t===t) c='hit';
+    else if(cl.has(clearedKey(nd,t)) && PATROLS.some(p=>patrolNode(p,t)===nd)) c='cleared';
+    else if(nd===GOAL) c='goalhit';
+    if(t>0 && S.route[t-1]===nd) mark='·'+mark;
+    h+=`<div class="c ${c}">${mark}</div>`;
+  }
+  g.innerHTML=h;
+  g.querySelectorAll('.th').forEach(e=>e.addEventListener('click',()=>{S.pin=+e.dataset.t; render();}));
+}
+
+/* ===================== SOLVER + PLAIN-WORDS COACH ===================== */
+function findCleanLine(){
+  const cl=clearedSet(), q=[[START]], seen=new Set([START+'@0']);
+  while(q.length){
+    const path=q.shift(), t=path.length-1, at=path[t];
+    if(at===GOAL) return path;
+    if(t>=BUDGET) continue;
+    for(const nx of [at].concat(ADJ[at])){
+      const k=nx+'@'+(t+1);
+      if(seen.has(k) || catcherAt(nx,t+1,cl)) continue;
+      seen.add(k); q.push(path.concat([nx]));
+    }
+  }
+  return null;
+}
+function coach(){
+  if(S.phase==='run' && S.improv===null && S.runT>=PAUSE_T) return {k:'bad',
+    h:'Hound has stopped on the River Locks and is not moving.',
+    m:'Two of you decide now. On the page at the right, pick what Wren does. Here, press <b>Re-route from here</b> if you want to send her a different way.'};
+  if(S.phase==='run') return {k:'', h:'She is moving.', m:'Follow her on the page at the right.'};
+  if(S.phase==='done') return {k:'', h:'The night is over.', m:'Read what it cost on the page at the right, then run it again.'};
+  const hit=checkRoute(S.route), last=S.route[S.route.length-1], t=S.route.length-1;
+  if(S.route.length===1) return {k:'',
+    h:'Wren is at the Rail Yard, bottom left. Click a circle joined to hers by a line.',
+    m:'<b style="color:var(--safe)">Green</b> means that street is empty when she would get there. <b style="color:var(--signal)">Red</b> means a patrol is standing on it. Walk her to the Customs Docks, far right.'};
+  if(hit) return {k:'bad',
+    h:N[hit.node].name+' is not empty at '+clock(hit.t)+' — '+hit.patrol+' is standing there.',
+    m:'Press <b>Undo step</b> and go a different way, or click the circle she is on to make her wait twenty minutes until the patrol moves off'+(N[hit.node].contact?', or spend '+N[hit.node].contact+' to empty the street.':'.')};
+  if(last!==GOAL) return {k:'',
+    h:'Clear so far. It is '+clock(t)+' and she has '+(BUDGET-t)+' move'+(BUDGET-t===1?'':'s')+' left before the barge goes.',
+    m:'Keep going to the Customs Docks. Clicking the circle she is already standing on makes her wait there — often that is the whole answer.'};
+  return {k:'good',
+    h:'Clean line. She reaches the docks at '+clock(t)+(S.burns.length?', spending '+S.burns.map(b=>N[b.node].contact).join(' and ')+'.':', spending nobody.'),
+    m:'Press <b>Send her</b>.'};
+}
+
+/* ============================= CONTROLS ============================= */
+function drawControls(){
+  const el=document.getElementById('controls'); el.innerHTML='';
+  const mk=(label,cls,fn,dis)=>{const b=document.createElement('button'); b.textContent=label; if(cls)b.className=cls; b.disabled=!!dis; b.addEventListener('click',fn); el.appendChild(b); return b;};
+  if(S.phase==='plan'){
+    mk('Undo step',null,()=>{ if(S.route.length>1){S.route.pop(); S.burns=S.burns.filter(b=>b.tick<S.route.length); S.pin=null; render();} },S.route.length<2);
+    mk('Start over',null,()=>{S.route=[START]; S.burns=[]; S.pin=null; render();},S.route.length<2);
+    mk('Show me a clean line',null,()=>{ const p=findCleanLine(); if(p){S.route=p; S.pin=null;} render(); });
+    const hit=checkRoute(S.route);
+    const burnable = hit && N[hit.node].contact && S.burns.length<2;
+    if(burnable) mk('Spend '+N[hit.node].contact.split(' ')[0],null,()=>{S.burns.push({node:hit.node,tick:hit.t}); render();});
+    const ok = S.route[S.route.length-1]===GOAL && !hit;
+    mk('Send her','go',()=>startRun(), !ok);
+  } else if(S.phase==='done'){
+    mk('Run it again','go',()=>{S=freshState(); render();});
+  }
+}
+function drawScrub(){
+  const el=document.getElementById('scrub'); el.innerHTML='';
+  for(let t=0;t<=BUDGET;t++){
+    const b=document.createElement('button');
+    b.textContent=clock(t); if(t===S.viewTick) b.className='on';
+    b.addEventListener('click',()=>{S.pin=t; render();});
+    el.appendChild(b);
+  }
+}
+function drawVerdict(){
+  const v=document.getElementById('verdict'), c=coach();
+  v.className='verdict'+(c.k?' '+c.k:'');
+  v.innerHTML='<b style="font-family:var(--display);letter-spacing:.04em">'+c.h+'</b><br><span style="color:var(--mute)">'+c.m+'</span>';
+}
+
+/* ============================= DOSSIER ============================= */
+function peopleList(){
+  const burnt=new Set(S.burns.map(b=>b.node));
+  return '<ul class="ppl">'+NODES.filter(n=>n.contact).map(n=>
+    `<li class="${burnt.has(n.id)?'burnt':''}"><span class="code">${n.code}</span><span><span class="nm">${n.contact}</span> — <span class="nt">${n.note}</span></span></li>`).join('')+'</ul>';
+}
+function drawDossier(){
+  const el=document.getElementById('dossier-body');
+  document.getElementById('o-state').textContent =
+    S.phase==='plan'?'Briefing':S.phase==='run'?(S.improv===null&&S.runT>=PAUSE_T?'Decide':'Moving'):'Aftermath';
+  if(S.phase==='plan'){
+    el.innerHTML=`
+      <p class="sm">03:00. Varsk. Second winter of the Prefecture.</p>
+      <p>Four crates of printing plates are sitting in the rail yard, and a barge leaves the customs docks at <b>05:40</b> that will take them out of the country. Wren has to be standing on that quay when it does.</p>
+      <p>The streets between are on a schedule. Ilse lifted tonight's roster from the depot, which is the only reason this is a problem you can solve rather than a problem you guess at.</p>
+      <p class="sm">Every person on this list is a door. Opening one loudly closes it for good.</p>
+      ${peopleList()}
+      <p class="sm" style="margin-top:14px">You have two favours. Spending one pulls a patrol off a street for forty minutes — and ends that person's usefulness, and most of their life here.</p>`;
+  } else {
+    let h=`<p class="sm">${S.phase==='done'?'05:40. The barge is gone, one way or another.':'The line is committed. Wren is moving.'}</p>`;
+    h+='<div class="log">'+S.log.map(l=>`<div><span class="t">${l.t}</span><span class="${l.k||''}">${l.m}</span></div>`).join('')+'</div>';
+    if(S.phase==='run' && S.improv===null && S.runT>=PAUSE_T) h+=choicePanel();
+    if(S.phase==='done') h+=aftermath();
+    el.innerHTML=h;
+    const lg=el.querySelector('.log'); if(lg) lg.scrollTop=lg.scrollHeight;
+    el.querySelectorAll('[data-improv]').forEach(b=>b.addEventListener('click',()=>chooseImprov(b.dataset.improv)));
+    const rb=el.querySelector('[data-reroute]');
+    if(rb) rb.addEventListener('click',()=>{ S.rerouting=!S.rerouting; S.rerouteTail=S.rerouting?[S.route[PAUSE_T]]:null; render(); });
+  }
+}
+function tailNow(){
+  return (S.rerouteTail && S.rerouteTail.length>1) ? S.rerouteTail.slice(1) : S.route.slice(PAUSE_T+1);
+}
+function choicePanel(){
+  const cur=S.route[PAUSE_T], tail=tailNow(), nxt=tail[0];
+  const stillHits=(()=>{ const test=S.route.slice(0,PAUSE_T+1).concat(tail); return checkRoute(test); })();
+  const canBreak=tail.length>=2, canCall=nxt&&N[nxt].contact&&S.burns.length<2;
+  const tailTxt = S.rerouteTail&&S.rerouteTail.length>1
+    ? 'New line: '+S.rerouteTail.map(n=>N[n].code).join(' → ')
+    : 'Planned line holds: '+[cur].concat(tail).map(n=>N[n].code).join(' → ');
+  return `<div class="choice">
+    <h3>${stillHits?'The line is broken':'The line still holds'}</h3>
+    <p style="font-size:14px;margin-bottom:4px">Hound has left the roster and sat down on the <b>River Locks</b>. It is not moving and it is not pretending to patrol.</p>
+    <p class="sm">${stillHits?`As planned, Wren walks into ${N[stillHits.node].name} at ${clock(stillHits.t)}.`:'Hound is not on Wren’s line. She can simply keep walking.'}</p>
+    <p class="sm" style="margin-bottom:6px"><b>Handler:</b> ${tailTxt}</p>
+    <button data-reroute class="opt" style="text-align:center">${S.rerouting?'Stop re-routing':'Re-route from here (Handler)'}</button>
+    <button class="opt" data-improv="hold"><b>Keep walking</b><span class="cost">No cost. Trust the line.</span></button>
+    <button class="opt" data-improv="ground"><b>Go to ground</b><span class="cost">Wait out two blocks of the clock. +1 heat.</span></button>
+    <button class="opt" data-improv="break" ${canBreak?'':'disabled'}><b>Break for it</b><span class="cost">Cover two streets in one block. +2 heat.${canBreak?'':' — needs two streets left to run.'}</span></button>
+    <button class="opt" data-improv="call" ${canCall?'':'disabled'}><b>${canCall?'Call in '+N[nxt].contact.split(' ')[0]:'Call in a contact'}</b><span class="cost">${canCall?`Clears ${N[nxt].name} for forty minutes. Spends them.`:'Nobody to call on the next street.'}</span></button>
+  </div>`;
+}
+
+/* ============================= RUN ============================= */
+function say(t,m,k){ S.log.push({t,m,k:k||''}); }
+function startRun(){
+  S.phase='run'; S.runT=0; S.log=[];
+  say(clock(0),'Wren leaves the rail yard with four crates on a handcart.');
+  render(); tick();
+}
+function tick(){
+  S.timer=setTimeout(()=>{
+    S.runT++;
+    const t=S.runT;
+    if(t===DIVERT.from && !S.diverted){
+      S.diverted=true;
+      say(clock(PAUSE_T),'Hound breaks formation and stops on the river locks.','bad');
+      S.runT=PAUSE_T; S.viewTick=PAUSE_T; render(); return;   // pause for the two of you
+    }
+    if(t>=S.route.length){ finish(S.route[S.route.length-1]===GOAL?'delivered':'late'); return; }
+    const nd=S.route[t], prev=S.route[t-1], cl=clearedSet(), c=catcherAt(nd,t,cl);
+    S.viewTick=t;
+    if(c){ say(clock(t),`${c} is on ${N[nd].name}. They take her there.`,'bad'); finish('caught'); return; }
+    if(nd===prev) say(clock(t),`She waits at ${N[nd].name}.`);
+    else if(nd===GOAL) say(clock(t),'She reaches the customs docks.','good');
+    else if(cl.has(clearedKey(nd,t)) && PATROLS.some(p=>patrolNode(p,t)===nd)) say(clock(t),`${N[nd].name} is empty — the distraction held.`,'good');
+    else say(clock(t),`She crosses to ${N[nd].name}.`);
+    render();
+    if(nd===GOAL){ finish('delivered'); return; }
+    tick();
+  }, 760);
+}
+function chooseImprov(kind){
+  const cur=S.route[PAUSE_T]; let tail=tailNow();
+  S.improv=kind;
+  if(kind==='ground'){ tail=[cur,cur].concat(tail); S.heat+=1; say(clock(PAUSE_T),'Wren goes to ground and lets the clock run.'); }
+  else if(kind==='break'){ const skipped=tail[0]; tail=tail.slice(1); S.heat+=2; say(clock(PAUSE_T),`She runs it — straight through ${N[skipped].name} without stopping.`); }
+  else if(kind==='call'){ const n=tail[0]; S.burns.push({node:n,tick:PAUSE_T+1}); say(clock(PAUSE_T),`She calls in ${N[n].contact}. ${N[n].name} will be empty for forty minutes.`); }
+  else say(clock(PAUSE_T),'She keeps walking.');
+  if(S.rerouteTail && S.rerouteTail.length>1 && kind!=='hold') {} // tail already taken from reroute
+  S.route=S.route.slice(0,PAUSE_T+1).concat(tail);
+  S.rerouting=false; S.rerouteTail=null;
+  render(); tick();
+}
+function finish(outcome){
+  clearTimeout(S.timer); S.outcome=outcome; S.phase='done';
+  if(outcome==='late') say(clock(BUDGET),'05:40. The barge casts off without her.','bad');
+  render();
+}
+
+/* ============================= AFTERMATH ============================= */
+const BURN_TEXT={
+  bakery:'The bakery burns at 03:40. Marek gets out. Ivka is still asking where her father went.',
+  tram:'Ilse is taken off the night roster. Whatever she signs now, nobody believes.',
+  press:'The presses are seized. The next three sets of papers will have to be real ones.',
+  cafe:'Café Vrba closes. Hana leaves on the Tuesday train and does not say goodbye.',
+  clinic:'The clinic is searched at dawn. Dr. Sabo keeps her licence and loses her nerve.',
+  locks:'Pavel is questioned for eleven hours. He gives them nothing and comes back wrong.',
+};
+function aftermath(){
+  const arr=S.route.length-1, burns=S.burns.map(b=>b.node), led=[];
+  let head,body;
+  if(S.outcome==='delivered'){
+    head='The plates are out';
+    body=`The barge takes the crates at ${clock(arr)} and is past the river gate before the sun touches the cathedral. Somewhere west of here, in a month, there will be forty thousand leaflets that the Prefecture cannot explain.`;
+  } else if(S.outcome==='caught'){
+    head='Wren does not come back';
+    body='The crates are opened on the street. By morning the Prefecture knows what the plates are for, and roughly who had them. The cell holds — for now — because she does not say anything for three days.';
+  } else {
+    head='The barge leaves empty';
+    body='The plates go back under the floor of the rail yard. Nobody is caught and nothing is gained, and the next window is in nineteen days, by which time the border may be shut.';
+  }
+  burns.forEach(n=>led.push({k:N[n].contact.toUpperCase()+' — SPENT', v:BURN_TEXT[n]}));
+  if(!burns.length) led.push({k:'NOBODY SPENT', v:'Every door on the list still opens. That has not happened on a run this size before, and the cell will expect it again.'});
+  if(S.heat>=2) led.push({k:'THE CITY TIGHTENS', v:'Two patrols file reports about a woman moving fast in the fourth district. Next month there are more of them, and they start earlier.'});
+  else led.push({k:"A QUIET NIGHT", v:'Nothing goes in a report. As far as the Prefecture knows, nothing happened at all.'});
+  if(S.diverted) led.push({k:'HOUND KNEW', v:'Hound sat on the river locks for forty minutes on the one night the barge was coming. Four people knew about the barge. One of them is on your list.'});
+  return `<div class="ledger">
+    <h2 style="margin-bottom:6px">${head}</h2>
+    <p>${body}</p>
+    <div class="lbl" style="color:var(--paper-mute);margin:16px 0 4px">Carried into the next mission</div>
+    <ul>${led.map(e=>`<li><b>${e.k}</b>${e.v}</li>`).join('')}</ul>
+    <p class="sm" style="margin-top:14px">Arrived ${S.outcome==='delivered'?clock(arr):'—'} · ${burns.length} spent · heat ${S.heat}</p>
+  </div>`;
+}
+
+/* ============================= RENDER ============================= */
+function render(){
+  if(S.phase==='plan' && !S.rerouting) S.viewTick = S.pin!==null ? S.pin : Math.min(S.route.length,BUDGET);
+  else if(S.rerouting && S.rerouteTail) S.viewTick = Math.min(PAUSE_T+S.rerouteTail.length,BUDGET);
+  else if(S.phase!=='plan') S.viewTick = Math.min(S.runT,BUDGET);
+  document.getElementById('g-clock').textContent=clock(S.phase==='plan'?S.viewTick:Math.min(S.runT,BUDGET));
+  document.getElementById('g-fav').textContent=2-S.burns.length;
+  const hv=document.getElementById('g-heat'); hv.textContent=S.heat; hv.className='v'+(S.heat>=2?' hot':'');
+  const bv=document.getElementById('g-burn'); bv.textContent=S.burns.length; bv.className='v'+(S.burns.length?' hot':'');
+  document.getElementById('h-mode').textContent = S.rerouting?'Re-routing — click the map':S.phase==='plan'?'Plan the line':S.phase==='run'?'Running':'Closed';
+  const sw=document.getElementById('scrub-when'); if(sw) sw.textContent=clock(S.viewTick);
+  drawMap(); drawScrub(); drawRoster(); drawControls(); drawVerdict(); drawDossier();
+}
+function boot(data){ S=freshState(); if(data&&data.route&&data.phase==='plan'){S.route=data.route; S.burns=data.burns||[];} render(); }
+if(window.claude&&window.claude.hot&&window.claude.hot.ready) window.claude.hot.ready(boot);
+else boot((window.claude&&window.claude.hot&&window.claude.hot.data)||{});
+if(window.claude&&window.claude.hot&&window.claude.hot.snapshot) window.claude.hot.snapshot(()=>({phase:S.phase,route:S.route,burns:S.burns}));
+</script>
+</body>
+</html>

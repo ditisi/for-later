@@ -1,0 +1,1091 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>For Later</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=Karla:wght@400;500;700&display=swap">
+<style>
+/* Layout: couch-co-op split screen. 1995 on the left in lamplight, 2026 on the right in the dark. HUD across the top, the radio transcript underneath. */
+:root{
+  --bg:#0b0c0e; --s1:#131417; --s2:#1b1d21; --line:#272a2f;
+  --fg:#e7e3da; --mute:#8f8c85; --warm:#e2a744; --cold:#7fb4ca; --good:#8fd0a4; --bad:#e07a5a;
+  --disp:'Fraunces',Georgia,serif; --body:'Karla',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:1320px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+header.top{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:flex-end;justify-content:space-between;margin-bottom:12px}
+h1{font-family:var(--disp);font-weight:300;font-size:36px;margin:0;line-height:1;letter-spacing:-.01em}
+h1 b{font-weight:700}
+.tag{color:var(--mute);font-size:13.5px;margin:7px 0 0;max-width:52ch}
+.hud{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:flex-end}
+.lbl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-weight:700}
+.tv{font-family:var(--disp);font-weight:500;font-size:28px;font-variant-numeric:tabular-nums;line-height:1.1}
+.tv.low{color:var(--bad)}
+.bar{height:3px;background:var(--line);border-radius:2px;margin-top:4px;width:150px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--cold);width:100%}
+.bar i.low{background:var(--bad)}
+.pips{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.pip{font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.pip.ready{border-color:var(--cold);color:var(--cold)}
+.pip.done{background:var(--good);border-color:var(--good);color:#0d1a12;font-weight:700}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+button{font-family:var(--body);font-size:13px;font-weight:500;background:var(--s2);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:8px 12px;cursor:pointer}
+button:hover:not(:disabled){border-color:#4a4e55}
+button:focus-visible{outline:2px solid var(--cold);outline-offset:2px}
+button:disabled{opacity:.4;cursor:not-allowed}
+kbd{font-family:var(--body);font-size:11px;border:1px solid #3a3d43;border-bottom-width:2px;border-radius:3px;padding:0 5px;color:var(--fg);background:rgba(255,255,255,.03)}
+.now-line{margin:0 0 12px;padding:10px 14px;background:var(--s1);border:1px solid var(--line);border-radius:4px;font-size:14.5px}
+.now-line b{font-family:var(--disp);font-weight:500;margin-right:6px}
+.stage{position:relative;display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:980px){.stage{grid-template-columns:1fr 1fr}}
+.pane{min-width:0;border-radius:6px;overflow:hidden;border:1px solid var(--pl);background:var(--pb)}
+.pane.past{--pa:#e2a744;--pb:#17110b;--pl:#3a2b1c}
+.pane.now{--pa:#7fb4ca;--pb:#0d1216;--pl:#22303a}
+.ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;padding:10px 14px}
+.yr{font-family:var(--disp);font-weight:700;font-size:23px;color:var(--pa)}
+.who{font-family:var(--disp);font-size:15px;margin-left:8px}
+.keys{font-size:12px;color:var(--mute)}
+.keys kbd{border-color:var(--pl)}
+canvas{display:block;width:100%;aspect-ratio:26/17;cursor:pointer;touch-action:manipulation;background:#000}
+.pf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px}
+.hold{font-size:13px;color:var(--mute)}
+.hold b{color:var(--fg)}
+.act{background:var(--pa);border-color:var(--pa);color:#101214;font-weight:700;max-width:100%;text-align:left}
+.act:hover:not(:disabled){filter:brightness(1.08);border-color:var(--pa)}
+.overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:rgba(7,8,10,.86)}
+.card{max-width:660px;width:100%;max-height:100%;overflow:auto;background:#111215;border:1px solid var(--line);border-radius:6px;padding:26px}
+.card h2{font-family:var(--disp);font-weight:500;font-size:30px;margin:6px 0 12px;line-height:1.15;text-wrap:balance}
+.card p{margin:0 0 12px;color:#d2cec5}
+.ctl{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}
+@media(max-width:560px){.ctl{grid-template-columns:1fr}}
+.ctl div{border:1px solid var(--line);border-radius:4px;padding:10px 12px;font-size:13.5px}
+.ctl .y{font-family:var(--disp);font-weight:700;font-size:17px;display:block;margin-bottom:2px}
+.go{background:var(--fg);color:#111;border-color:var(--fg);font-weight:700;font-size:15px;padding:11px 20px}
+.go:hover:not(:disabled){border-color:var(--fg);filter:brightness(.95)}
+.mem{list-style:none;margin:10px 0 16px;padding:0}
+.mem li{border-top:1px solid var(--line);padding:11px 0;font-family:var(--disp);font-weight:300;font-size:16.5px;line-height:1.5}
+.mem li.dim{color:var(--mute);font-family:var(--body);font-size:14px}
+.exch{font-size:15px;line-height:1.9}
+.exch b{font-family:var(--disp);font-size:12.5px;letter-spacing:.06em;margin-right:8px}
+.below{display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px}
+@media(min-width:980px){.below{grid-template-columns:1.35fr .65fr}}
+.panel{background:var(--s1);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+#log{max-height:240px;overflow-y:auto;margin-top:8px;font-size:14px}
+#log div{padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+#log .w{font-family:var(--disp);font-weight:700;font-size:12px;letter-spacing:.04em;margin-right:8px}
+#log .jan .w{color:var(--warm)}
+#log .mira .w{color:var(--cold)}
+#log .sys{color:var(--mute);font-style:italic;font-size:13px}
+#hint{margin-top:8px;font-size:14px;color:#d2cec5;min-height:3em}
+#hint .lbl{color:var(--fg);margin-bottom:3px}
+.note{color:var(--mute);font-size:13px;max-width:80ch;margin-top:22px;border-left:2px solid var(--line);padding-left:12px}
+.note b{color:var(--fg);font-family:var(--disp);font-weight:500}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0 4px}
+@media(max-width:620px){.modes{grid-template-columns:1fr}}
+.mode{border:1px solid var(--line);border-radius:5px;padding:14px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.mode .y{font-family:var(--disp);font-weight:700;font-size:18px}
+.mode p{margin:0;font-size:13.5px;color:var(--mute)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row button{flex:1 1 auto}
+.gl{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-weight:700}
+#gname{font:inherit;font-size:14px;background:var(--s2);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:8px 10px;width:100%}
+#gname:focus-visible{outline:2px solid var(--cold);outline-offset:1px}
+#b-jan{border-color:#6b4f25}
+#b-mira{border-color:#2b4a58}
+.netnote{font-size:12.5px;color:var(--mute);margin:0}
+.netb{display:inline-block;font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.netb.on{border-color:var(--good);color:var(--good)}
+.stage.one{grid-template-columns:minmax(0,980px);justify-content:center}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div>
+    <h1>For <b>Later</b></h1>
+    <p class="tag">Level one: <b style="color:var(--fg);font-weight:500">Vrbna 7</b>. One floor of one building — a father in 1995, a daughter in 2026, thirty-one years between them, and a radio.</p>
+  </div>
+  <div class="hud">
+    <div><div class="lbl">Building comes down in</div><div class="tv" id="tv">12:00</div><div class="bar"><i id="tb"></i></div></div>
+    <div id="pipwrap"><div class="lbl">Mira's way out</div><div class="pips" id="pips"></div></div>
+    <div id="netwrap" hidden><div class="lbl">Two screens</div><div style="margin-top:5px"><span class="netb" id="netb">—</span></div></div>
+    <div class="btns">
+      <button id="b-hint">Hint <kbd>H</kbd></button>
+      <button id="b-pause">Pause <kbd>P</kbd></button>
+      <button id="b-snd">Sound: on</button>
+      <button id="b-re">Restart</button>
+    </div>
+  </div>
+</header>
+
+<p class="now-line" id="nowline"><b>Now</b>—</p>
+
+<div class="stage">
+  <section class="pane past" id="pane95">
+    <div class="ph"><div><span class="yr">1995</span><span class="who">Jan</span></div>
+      <div class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>E</kbd> act · or click</div></div>
+    <canvas id="cv95" aria-label="1995: Jan's floor of Vrbna 7"></canvas>
+    <div class="pf"><div class="hold" id="h95">Hands empty</div><button class="act" id="a95" disabled>—</button></div>
+  </section>
+  <section class="pane now" id="pane26">
+    <div class="ph"><div><span class="yr">2026</span><span class="who">Mira</span></div>
+      <div class="keys"><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> move · <kbd>Enter</kbd> act · or click</div></div>
+    <canvas id="cv26" aria-label="2026: Mira's floor of Vrbna 7"></canvas>
+    <div class="pf"><div class="hold" id="h26">Pockets empty</div><button class="act" id="a26" disabled>—</button></div>
+  </section>
+
+  <div class="overlay" id="intro"><div class="card">
+    <div class="lbl">For Later · level one · Vrbna 7</div>
+    <h2>Same flat. Thirty-one years apart.</h2>
+    <p>In <b style="color:var(--warm)">1995</b>, Jan is having an ordinary Tuesday evening at home. In <b style="color:var(--cold)">2026</b>, a gas main has gone, the stairs have fallen in, and Mira is trapped on the same floor with twelve minutes before the building comes down.</p>
+    <p>Somehow, they can hear each other. Anything Jan leaves or changes in 1995 is still there for Mira in 2026 — unless thirty-one years got to it first.</p>
+    <div class="ctl">
+      <div><span class="y" style="color:var(--warm)">Jan · 1995 · the warm side</span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move, <kbd>E</kbd> act</div>
+      <div><span class="y" style="color:var(--cold)">Mira · 2026 · the dark side</span>arrow keys move, <kbd>Enter</kbd> act</div>
+    </div>
+    <div class="modes">
+      <div class="mode">
+        <span class="y">One screen</span>
+        <p>Both years side by side. Share a keyboard, one year each — or play both on your own. You can also click anywhere to walk there and click things to use them.</p>
+        <div style="margin-top:auto"><button class="go" id="b-start">Play on one screen</button></div>
+      </div>
+      <div class="mode">
+        <span class="y">Two screens</span>
+        <p>Each of you opens this page on your own computer and sees <b style="color:var(--fg)">only your own year</b>. Whatever is in the way, you'll have to describe it to each other. Either year moves with WASD or the arrows, and acts with E or Enter.</p>
+        <label class="gl" for="gname">Game name — type the same one on both screens</label>
+        <input id="gname" value="for-later" maxlength="24" autocomplete="off" spellcheck="false">
+        <div class="row"><button id="b-jan" disabled>I'm Jan · 1995</button><button id="b-mira" disabled>I'm Mira · 2026</button></div>
+        <p class="netnote" id="mstatus">Connecting…</p>
+      </div>
+    </div>
+  </div></div>
+  <div class="overlay" id="pausecard" hidden><div class="card" style="text-align:center;max-width:360px">
+    <h2>Paused</h2><p>Nothing moves in either year.</p><button class="go" id="b-resume">Resume</button>
+  </div></div>
+  <div class="overlay" id="endcard" hidden><div class="card" id="endbody"></div></div>
+  <div class="overlay" id="lobby" hidden><div class="card" style="max-width:520px">
+    <div class="lbl" id="lb-game">Two screens</div>
+    <h2 id="lb-title">—</h2>
+    <p id="lb-text">—</p>
+    <p class="netnote" id="lb-note" style="margin-bottom:14px"></p>
+    <div class="row"><button class="go" id="b-lbstart" disabled>Start</button><button id="b-lbback">Back</button></div>
+  </div></div>
+</div>
+
+<div class="below">
+  <section class="panel"><div class="lbl">On the radio</div><div id="log"></div></section>
+  <section class="panel"><div class="lbl">Stuck?</div><div id="hint">Press <b>Hint</b> for a nudge. Press it again for a bigger one, and once more for the answer.</div></section>
+</div>
+
+<p class="note"><b>How it works.</b> The two halves are the same floor of the same building. Watch 2026 when Jan does something in 1995: a green ring means it survived to 2026, a red one means thirty-one years took it — the radiator got replaced, the cupboard got bricked up, the kitchen went in a skip. Mira can only use what survived. Played by two people, each of you holds one year; the fun is in telling each other what you see. On <b>two screens</b> neither of you gets those rings for the other year — Jan only finds out whether something survived if Mira tells him.</p>
+</div>
+
+<script>
+'use strict';
+/* two-screen state: MODE 'local' (one screen), 'host' (Jan's screen runs the game), 'client' (Mira's screen) */
+let MODE='local', SEAT=null, GAME='for-later', partnerSeen=0, lastW=null;
+const HS={ack:0,pid:null,go:0,pq:0,rr:0,autoPaused:false};
+const CL={seq:0,reqs:[],go:0,pq:0,rr:0};
+const Net={kind:null,peers:[],setP:null,note:'Connecting…'};
+const DI={up:0,down:1,left:2,right:3}, DN=['up','down','left','right'];
+const sees=era=>MODE==='local'||(MODE==='host'?era==='95':era==='26');
+/* ====================================================================== WORLD */
+const T=24, W=26, H=17, SPEED=6.2, LIMIT=720, CLOCK0=3*60+48;
+const MAPS={
+'95':[
+"#############ww#######ww##",
+"#.....#....#.....#.......#",
+"#.....#....#.....#.......#",
+"#.....#....#.....#.......#",
+"#.....#....#.....#.......w",
+"#.....D....#.....#.......w",
+"#.....#....D.....#.......#",
+"#.....#....#.....#.......#",
+"#.....#....#.....#.......#",
+"#.....#....#.....#.......#",
+"#.....######D#######D#####",
+"#.....#..................#",
+"#.....#..................#",
+"#=====###############D####",
+"#=====#p,,,,,,,,,,,,,,,,,p",
+"#=====#p,,,,,,,,,,,,,,,,,p",
+"#######ppppppppppppppppppp"],
+'26':[
+"#############ww#######ww##",
+"#.....#..........#.......#",
+"#.....#..........#.......#",
+"#.....#..........#.......#",
+"#.....#......XX..#.......w",
+"#.....D......XX..#.......w",
+"#.....#..........#.......#",
+"#.....#..........#.......#",
+"#.....#..........#.......#",
+"#.....#..........#.......#",
+"#.....######D#######D#####",
+"#.....#..................#",
+"#.....#..................#",
+"#XXXXX###############D####",
+"#XXXXX#p,,,,,,,,,,,,,,,,,p",
+"#XXXXX#p,,,,,,,,,,,,,,,,,p",
+"#######ppppppppppppppppppp"]};
+for(const e in MAPS) MAPS[e].forEach((r,i)=>{ if(r.length!==W) console.error('map row width',e,i,r.length); });
+
+const DIRS={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+const dirOf=(dx,dy)=>dx===1?'right':dx===-1?'left':dy===1?'down':dy===-1?'up':null;
+const tileAt=(era,x,y)=>(x<0||y<0||x>=W||y>=H)?'#':MAPS[era][y][x];
+const inR=(x,y,x0,y0,x1,y1)=>x>=x0&&x<=x1&&y>=y0&&y<=y1;
+function room(era,x,y){
+  if(inR(x,y,1,1,5,12)) return 'landing';
+  if(inR(x,y,8,14,24,15)) return 'roof';
+  if(inR(x,y,7,11,24,12)) return 'corridor';
+  if(inR(x,y,18,1,24,9)) return era==='95'?'drying':'bath';
+  if(era==='95'){ if(inR(x,y,7,1,10,9)) return 'kitchen'; if(inR(x,y,12,1,16,9)) return 'back'; }
+  else if(inR(x,y,7,1,16,9)) return 'big';
+  return null;
+}
+function hash(x,y,s){let h=(x*374761393+y*668265263+s*982451653)|0;h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296;}
+
+/* ====================================================================== ITEMS & SPOTS */
+const NAME={crowbar:'crowbar',key:'roof key',wrench:'wrench',prop:'timber post'};
+const SMALL=['crowbar','key','wrench'];
+const SPOTS={
+  drying:{x:19,y:9,origin:'crowbar',put:'behind the drying-room door',fate:'room gutted for a bathroom, 2004',look:"Behind the drying-room door. Where the crowbar lives."},
+  hook:{x:6,y:4,origin:'key',put:'back on the hook by the front door',fate:'wall replastered, 2004',look:"The key hook by the front door."},
+  drawer:{x:10,y:1,origin:'wrench',solid:true,put:'in the kitchen drawer',fate:'kitchen ripped out, 2004',look:"The kitchen drawer. String, batteries, half a pencil."},
+  back:{x:16,y:8,origin:'prop',solid:'prop',accepts:['prop'],put:'back against the wall',putLabel:'Lean the timber post back against the wall',fate:'cleared out years ago',look:"Where the spare timber was leaning."},
+  step:{x:3,y:12,good:true,put:'under the loose top step',fate:'still here in 2026',look:"The top step of the flight. It's been loose for years. Nobody ever fixes it."},
+  radiator:{x:1,y:7,solid:true,put:'behind the radiator',fate:'radiator replaced, 2004',look:"Cast iron. It clanks all night."},
+  meter:{x:5,y:2,solid:true,put:'on the meter-cupboard shelf',fate:'bricked up, 2004',look:"The meter cupboard. Gas, electric, and a shelf."},
+  flue:{x:8,y:1,tiles:[[8,1],[9,1]],solid:true,good:true,put:'on a nail inside the chimney flue',fate:'still here in 2026',look:"The chimney breast. The flue's open at the top — we lose a draught up it every winter."},
+  sill:{x:13,y:0,put:'on the back-room window sill',fate:'window replaced, 2004',look:"Vrbna Street. A tram goes by, lit up and empty."},
+  board:{x:13,y:7,put:'under a loose floorboard',fate:'floor relaid, 2004',look:"A loose floorboard. Eva trips on it twice a week."},
+  crack:{x:16,y:11,solid:'prop',good:true,accepts:['prop'],put:'under the crack in the ceiling',putLabel:'Wedge the timber post under the crack',fate:'still holding in 2026',look:"There's a crack right across the hall ceiling, and grit on the floor under it. The landlord says it's nothing."}
+};
+for(const k in SPOTS){const s=SPOTS[k];s.id=k;s.accepts=s.accepts||SMALL;s.tiles=s.tiles||[[s.x,s.y]];s.cx=s.tiles.length>1?s.x+.5:s.x;}
+
+const PUTLINE={
+  'crowbar@step':"Crowbar's under the top step on the landing. I wrapped it in a rag.",
+  'key@flue':"There's a nail up inside the kitchen chimney. The roof key's on it.",
+  'prop@crack':"Wedged the post under that crack in the hall. The landlord can thank me later."
+};
+const PICKLINE={
+  crowbar:"My crowbar. What would anyone want with a crowbar in thirty years?",
+  key:"The roof key. I hardly ever go up there.",
+  wrench:"The wrench.",
+  prop:"Spare timber from when they did the floors. Heavy."
+};
+const MIRATAKE={
+  step:{crowbar:"There's a crowbar under the step, wrapped in a rag. It's been here longer than I've been alive.",
+        key:"A key under the step. Old. The tag says ROOF.",
+        wrench:"A wrench under the step. Thanks, I suppose."},
+  flue:{key:"There's a nail up inside the chimney, and a key on it. The tag says ROOF.",
+        crowbar:"A crowbar. Up the chimney. Okay.",
+        wrench:"A wrench up the chimney. I'm not sure what you think I'll do with that."}
+};
+const MEM={
+  'crowbar@step':"I remember you on your knees on the landing with a crowbar and a rag, and Mum asking what on earth you were doing. You said: for later.",
+  'key@flue':"I remember you reaching up inside the kitchen chimney, and me asking if that was where Father Christmas lived. You said there was something up there for me, for when I was older.",
+  'any@step':"I remember you prising up the top step on the landing and putting it back so carefully. Mum said you'd gone strange.",
+  'any@flue':"I remember soot all over the kitchen floor, and you refusing to say what you'd put up the chimney.",
+  prop:"I remember the post in the middle of the hall that everyone walked around. You boxed it in and painted it and wouldn't let anyone take it out. You measured my height on it every birthday.",
+  pipe:"I remember you on the roof in the rain, swearing at a drainpipe nobody else cared about. You went on about it for a week."
+};
+const OBJ={
+  door:"Mira is stuck on the landing. The steel door into the flat is jammed shut, and she has nothing to lever it with.",
+  key:"The roof is the only way out, and the roof door is locked. The key has been missing for years.",
+  hall:"The hall ceiling has collapsed in 2026. Mira can't get past it.",
+  roofdoor:"Mira has the roof key. Get her to the roof door — south wall of the hall, near the far end.",
+  ladder:"The fire escape has rusted off in 2026. Mira needs it to be there.",
+  climb:"The fire escape is there. Get Mira down it."
+};
+const HINTS={
+  door:["The steel door needs levering, and Mira has nothing. Jan, thirty-one years earlier, owns a crowbar.",
+        "Jan's crowbar is behind the drying-room door. The landing exists in both years — but its radiator was replaced in 2004, and its meter cupboard was bricked up.",
+        "Jan: pick up the crowbar and put it under the loose top step on the landing. Mira: lift the step, then force the door."],
+  key:["The roof door at the far end of the hall is locked in 2026. Jan's roof key hangs by his front door — but that wall was replastered.",
+       "Nearly everything in Jan's kitchen was ripped out in 2004. One thing in that room is in exactly the same place in both years.",
+       "Jan: take the roof key off the hook by the front door and put it up the chimney flue. Mira: reach up the flue."],
+  hall:["In 2026 the hall ceiling has collapsed. In 1995 that same ceiling is already cracking.",
+        "Something leaning in Jan's back room could hold that ceiling up for thirty-one years.",
+        "Jan: carry the timber post from the back room and wedge it under the crack in the hall ceiling."],
+  roofdoor:["Mira has the key. The roof door is on the south wall of the hall, near the east end.",
+            "Walk Mira along the hall past the post, to the door in the bottom wall.",
+            "Mira: face the roof door and press Enter."],
+  ladder:["The fire escape has rusted off in 2026. Oiling or painting it in 1995 won't survive thirty-one years.",
+          "Look above the ladder on Jan's roof. What has been dripping on that bracket all autumn?",
+          "Jan: take the wrench from the kitchen drawer and refit the cracked collar on the downpipe above the ladder."],
+  climb:["The ladder is there now.","Walk Mira to the fire escape on the east edge of the roof.","Mira: face the fire escape and press Enter."]
+};
+const ZONE={
+  '26:big':"I'm in. It's all one room now — someone knocked the wall through. There's a chimney breast, and holes in the floor.",
+  '26:corridor':()=>propOK()?"There's a post in the middle of the hall holding the ceiling up. Boxed in, painted over.":"The hall ceiling's come down. There's no getting past that.",
+  '26:bath':"The drying room's a bathroom now. Tiles everywhere.",
+  '26:roof':()=>G.pipeFixed?"I'm on the roof. The fire escape's on the far side.":"I'm on the roof. The fire escape's on the far side — what's left of it.",
+  '95:roof':"Freezing up here.",
+  '95:drying':"Sheets on the line. Eva will kill me if I knock them down."
+};
+
+/* ====================================================================== STATE */
+let G;
+function mk(era,x,y,dir){return {era,x,y,tx:x,ty:y,px:x,py:y,dir,moving:false,mt:0,walk:0,path:[],pending:null,bubble:null,hand:null,target:null};}
+function newGame(){
+  G={started:false,paused:false,over:null,time:0,vt:0,endAt:null,
+    epoch:MODE==='client'?-1:Math.floor(Math.random()*1e9), logId:0, logTail:[], rId:0, rTail:[], lastLog:0, lastRp:0, wn:0,
+    items:{crowbar:{at:'drying',taken:false},key:{at:'hook',taken:false},wrench:{at:'drawer',taken:false},prop:{at:'back',taken:false}},
+    jan:mk('95',9,6,'down'), mira:mk('26',3,6,'right'), pocket:[],
+    steelOpen:false, roofOpen:false, pipeFixed:false, oiled:false, painted:false, propLocked:false,
+    seen:{}, picked:{}, waste:new Set(), ripples:[], dust:[], drips:[], dripT:0, shake:0, nextTremor:34, tremors:0,
+    timers:[], hintObj:null, hintLvl:-1, script:[]};
+  const S=[
+    [0.6,'mira',"Hello? Can anyone hear me?"],
+    [3.0,'jan',"...Who's that? Why is my radio talking?"],
+    [5.8,'mira',"Dad?! — sorry. You sound like my dad. The stairs just went. I'm stuck on the third floor of Vrbna 7."],
+    [10.2,'jan',"I'm ON the third floor of Vrbna 7. Nothing's gone anywhere. It's a Tuesday."],
+    [13.8,'mira',"What year is it there?"],
+    [15.8,'jan',"Ninety-five. Why — what year is it there?"],
+    [18.6,'mira',"Twenty twenty-six. And this building has about twelve minutes left."],
+    [21.4,'sys',"The warm side is 1995, the dark side is 2026 — the same floor. Whatever Jan leaves or changes, Mira finds… if thirty-one years didn't get to it first."]
+  ];
+  G.script=S.map(([t,w,x])=>({t,w,x}));
+  document.getElementById('log').innerHTML='';
+  document.getElementById('hint').innerHTML='Press <b>Hint</b> for a nudge. Press it again for a bigger one, and once more for the answer.';
+  lastHud={}; lastW=null;
+  if(MODE==='client'){ CL.seq=0; CL.reqs=[]; } else HS.ack=0;
+}
+const itemAt=sid=>Object.keys(G.items).find(k=>G.items[k].at===sid)||null;
+const propOK=()=>G.items.prop.at==='crack';
+const has=it=>G.pocket.includes(it);
+function availToMira(it){ if(has(it)) return true; const s=G.items[it]; return !s.taken&&(s.at==='step'||s.at==='flue'); }
+function later(d,fn){ G.timers.push({t:G.vt+d,fn}); }
+
+/* ====================================================================== AUDIO */
+let AC=null, SND=true;
+function ac(){ if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){AC=null;} } if(AC&&AC.state==='suspended') AC.resume().catch(()=>{}); return AC; }
+function tone(f,d,type,v,when){ if(!SND) return; const a=ac(); if(!a) return; const t=a.currentTime+(when||0); const o=a.createOscillator(),g=a.createGain(); o.type=type||'sine'; o.frequency.value=f; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v||.05,t+.015); g.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(g).connect(a.destination); o.start(t); o.stop(t+d+.05); }
+function chime(good){ if(good){tone(523,.55,'sine',.05);tone(659,.6,'sine',.04,.09);tone(988,.8,'sine',.03,.18);} else {tone(330,.5,'triangle',.045);tone(247,.7,'triangle',.035,.12);} }
+function blip(){ tone(880,.08,'square',.02); }
+function thud(){ tone(70,.4,'sine',.13); tone(120,.2,'triangle',.06); }
+function rumble(dur){ if(!SND) return; const a=ac(); if(!a) return; const n=Math.floor(a.sampleRate*dur), b=a.createBuffer(1,n,a.sampleRate), d=b.getChannelData(0); for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/n,1.5); const s=a.createBufferSource(); s.buffer=b; const f=a.createBiquadFilter(); f.type='lowpass'; f.frequency.value=140; const g=a.createGain(); g.gain.value=.6; s.connect(f).connect(g).connect(a.destination); s.start(); }
+
+/* ====================================================================== TALK */
+function log(who,text){ logRaw(who,text); G.logId++; G.logTail.push({id:G.logId,w:who,t:text}); if(G.logTail.length>5) G.logTail.shift(); }
+function logRaw(who,text){
+  const L=document.getElementById('log'), d=document.createElement('div'); d.className=who;
+  if(who==='sys'){ d.textContent=text; }
+  else { const w=document.createElement('span'); w.className='w'; w.textContent=who==='jan'?'JAN · 1995':'MIRA · 2026'; d.appendChild(w); d.appendChild(document.createTextNode(text)); }
+  L.appendChild(d); while(L.children.length>80) L.firstChild.remove(); L.scrollTop=L.scrollHeight;
+}
+function say(ch,text){ ch.bubble={text,at:G.vt,dur:2.4+text.length*.05}; log(ch===G.jan?'jan':'mira',text); }
+const sys=t=>log('sys',t);
+function ripple(era,x,y,good,text){
+  G.ripples=G.ripples.filter(r=>!(r.era===era&&r.x===x&&r.y===y)); G.ripples.push({era,x,y,good,text,t0:G.vt});
+  if(era==='26'){ G.rId++; G.rTail.push({id:G.rId,x,y,good,text}); if(G.rTail.length>3) G.rTail.shift(); }
+}
+
+/* ====================================================================== JAN'S ACTIONS */
+function janSpot(s){
+  const here=itemAt(s.id), hand=G.jan.hand;
+  if(here){
+    const it=G.items[here], locked=it.taken||(here==='prop'&&G.propLocked);
+    if(locked) return {label:`Try to take the ${NAME[here]}`,run:()=>say(G.jan,"It won't come loose. Like it was always meant to be there.")};
+    if(!hand) return {label:`Take the ${NAME[here]}`,run:()=>janTake(s)};
+    if(s.accepts.includes(hand)) return {label:`Swap the ${NAME[hand]} for the ${NAME[here]}`,run:()=>janSwap(s)};
+    return {label:'Hands full',run:()=>say(G.jan,`My hands are full — I've got the ${NAME[hand]}.`)};
+  }
+  if(hand){
+    if(s.accepts.includes(hand)) return {label:s.putLabel||`Put the ${NAME[hand]} ${s.put}`,run:()=>janPlace(s)};
+    return {label:'Look',run:()=>say(G.jan,hand==='prop'?"The post won't do anything there.":`The ${NAME[hand]} won't go there.`)};
+  }
+  return s.look?{label:'Look',run:()=>say(G.jan,s.look)}:null;
+}
+function janTake(s){
+  const it=itemAt(s.id); G.items[it].at='jan'; G.jan.hand=it; blip();
+  if(!G.picked[it]){ G.picked[it]=true; say(G.jan,PICKLINE[it]); }
+  future(s,it,'take');
+}
+function janPlace(s){
+  const it=G.jan.hand; G.items[it].at=s.id; G.jan.hand=null; blip();
+  say(G.jan,PUTLINE[it+'@'+s.id]||`The ${NAME[it]} is ${s.put}.`);
+  future(s,it,'place');
+}
+function janSwap(s){
+  const here=itemAt(s.id), hand=G.jan.hand;
+  G.items[hand].at=s.id; G.items[here].at='jan'; G.jan.hand=here; blip();
+  say(G.jan,`Swapped the ${NAME[hand]} for the ${NAME[here]}.`);
+  future(s,hand,'place');
+}
+function future(s,it,kind){
+  if(kind==='place'){
+    if(s.good){
+      ripple('26',s.cx,s.y,true,`${NAME[it]}: ${s.fate}`); if(sees('26')) chime(true);
+      if(s.id==='crack'&&G.seen['26:corridor']) later(1,()=>say(G.mira,"The rubble's gone. There's a post holding the ceiling up — it wasn't there a second ago."));
+    } else if(s.origin!==it){
+      ripple('26',s.cx,s.y,false,`${NAME[it]}: ${s.fate}`); if(sees('26')) chime(false); G.waste.add(it+'@'+s.id);
+    }
+  } else if(s.good){
+    ripple('26',s.cx,s.y,false,`${NAME[it]}: gone from 2026`); if(sees('26')) chime(false);
+    if(s.id==='crack'&&G.seen['26:corridor']) later(1,()=>say(G.mira,"The hall ceiling just came down again!"));
+  }
+}
+
+/* ====================================================================== MIRA'S ACTIONS */
+function miraTake(sid){
+  const it=itemAt(sid); G.items[it].taken=true; G.pocket.push(it);
+  say(G.mira,MIRATAKE[sid][it]); chime(true);
+  ripple('95',SPOTS[sid].cx,SPOTS[sid].y,true,'already happened — fixed in place');
+  sys(`Mira has the ${NAME[it]}. In 1995 it can't be moved any more — for her, it has already happened.`);
+}
+function win(){ if(G.over) return; G.over='win'; say(G.mira,"It holds. I'm going down."); chime(true); G.endAt=performance.now()+1900; }
+function lose(){ if(G.over) return; G.over='lose'; G.shake=2.4; rumble(2.6); G.endAt=performance.now()+2000; }
+
+/* ====================================================================== ENTITIES */
+const ENTS={'95':[],'26':[]};
+function ent(era,tiles,o){ const e=Object.assign({era,tiles,block:false,act:null,draw:null},o); ENTS[era].push(e); return e; }
+const look=(ch,label,text)=>()=>({label,run:()=>say(ch(),text)});
+const JN=()=>G.jan, MR=()=>G.mira;
+
+/* -- 1995 -- */
+ent('95',[[7,1]],{block:true,act:look(JN,'Look at the cooker',"The cooker. It came with the flat."),draw:c=>dStove(c)});
+ent('95',[[8,4],[9,4]],{block:true,act:look(JN,'Listen to the radio',"The radio. A girl's voice has been coming out of it all evening."),draw:c=>dTable(c)});
+ent('95',[[15,2],[16,2]],{block:true,act:look(JN,'Look at the bed',"Eva's at her sister's tonight. The flat's too quiet."),draw:c=>dBed(c)});
+ent('95',[[22,2]],{act:look(JN,'Look up at the hatch',"The roof hatch. Painted shut since before we moved in."),draw:c=>dHatch(c,'95')});
+for(const s of Object.values(SPOTS)){
+  ent('95',s.tiles,{block:s.solid==='prop'?()=>itemAt(s.id)==='prop':!!s.solid,act:()=>janSpot(s),draw:c=>dSpot95(c,s)});
+}
+ent('95',[[19,14]],{block:true,draw:c=>dOil(c),act:()=>({label:G.oiled?'Look at the oil can':'Oil the ladder bolts',run:()=>{
+  if(G.oiled){say(G.jan,"Already done.");return;}
+  G.oiled=true; G.waste.add('oil'); say(G.jan,"Oiled the ladder bolts. Can't hurt."); ripple('26',25,15,false,"oil: long gone by 2026"); if(sees('26')) chime(false);}})});
+ent('95',[[20,14]],{block:true,draw:c=>dPaint(c),act:()=>({label:G.painted?'Look at the paint tin':'Paint the fire escape',run:()=>{
+  if(G.painted){say(G.jan,"One coat's plenty.");return;}
+  G.painted=true; G.waste.add('paint'); say(G.jan,"Gave the fire escape a coat of green. Looks smart."); ripple('26',25,15,false,"paint: flaked off, rusted anyway"); if(sees('26')) chime(false);}})});
+ent('95',[[25,14]],{draw:c=>dPipe(c,'95'),act:()=>{
+  if(G.pipeFixed) return {label:'Look at the downpipe',run:()=>say(G.jan,"Dry now. Good.")};
+  if(G.jan.hand==='wrench') return {label:'Refit the cracked downpipe collar',run:()=>{
+    G.pipeFixed=true; blip(); say(G.jan,"New collar on the downpipe. It's not dripping on the ladder any more.");
+    ripple('26',25,15,true,"fire escape: still here in 2026"); if(sees('26')) chime(true);
+    if(G.seen['26:roof']) later(1.1,()=>say(G.mira,"Wait. The fire escape's there. It wasn't there a second ago."));}};
+  return {label:'Look at the downpipe',run:()=>say(G.jan,"The collar's cracked. It's been dripping on the ladder bracket all autumn. I'd need the wrench from the kitchen drawer.")};
+}});
+ent('95',[[25,15]],{draw:c=>dLadder(c,'95'),act:look(JN,'Look at the fire escape',"The fire escape. Solid. A bit of rust on the top bracket, right where that drip lands.")});
+
+/* -- 2026 -- */
+ent('26',[[1,7]],{block:true,draw:c=>dRad26(c),act:()=>({label:'Reach behind the radiator',run:()=>say(G.mira,itemAt('radiator')
+  ?"Nothing. This radiator's new — there are bolt holes where an old cast-iron one hung. Whatever was behind that went in a skip."
+  :"Nothing. It's a new radiator.")})});
+ent('26',[[5,2]],{block:true,draw:c=>dBrick(c),act:()=>({label:'Thump the brick patch',run:()=>say(G.mira,itemAt('meter')
+  ?"Solid brick. But something rattles behind it when I hit it. It's been bricked in for twenty years."
+  :"Solid brick. Something used to be here.")})});
+ent('26',[[3,12]],{draw:c=>dStep(c,'26'),act:()=>({label:'Lift the loose step',run:()=>{
+  const it=itemAt('step'); if(it&&!G.items[it].taken) miraTake('step'); else say(G.mira,"Dust and a dead wasp. Nothing under it.");}})});
+ent('26',[[6,5]],{block:()=>!G.steelOpen,draw:c=>dSteel(c),act:()=>{
+  if(G.steelOpen) return null;
+  if(has('crowbar')) return {label:'Force the door with the crowbar',run:()=>{
+    G.steelOpen=true; G.pocket.splice(G.pocket.indexOf('crowbar'),1); G.shake=.4; if(sees('26')) thud();
+    say(G.mira,"Come on— ...it's open. The crowbar's bent double.");}};
+  return {label:'Try the steel door',run:()=>say(G.mira,"Steel, jammed in its frame. I need something to lever it.")};
+}});
+ent('26',[[6,4]],{act:look(MR,'Look at the wall',"Smooth new plaster. If anything hung on this wall, it's gone.")});
+ent('26',[[7,1]],{block:true,draw:c=>dCounter26(c,7),act:look(MR,'Look at the counter',"A 2004 kitchen. Someone else's mugs, still in the sink.")});
+ent('26',[[8,1],[9,1]],{block:true,draw:c=>dChimney(c,'26'),act:()=>({label:'Reach up the chimney flue',run:()=>{
+  const it=itemAt('flue'); if(it&&!G.items[it].taken) miraTake('flue'); else say(G.mira,"Soot to the elbow. Nothing on the brick.");}})});
+ent('26',[[10,1]],{block:true,draw:c=>dCounter26(c,10),act:look(MR,'Open the cupboard',"Empty. This kitchen went in in 2004 — the old one went in a skip with whatever was in it.")});
+ent('26',[[15,2],[16,2]],{block:true,draw:c=>dSofa(c),act:look(MR,'Look at the sofa',"Someone's sofa. Not ours.")});
+ent('26',[[13,7]],{act:look(MR,'Look at the floor',"New laminate. Whatever was under the old boards went with them.")});
+ent('26',[[13,0]],{act:look(MR,'Look at the window',"Boarded up. The old window went years ago, sill and all.")});
+ent('26',[[19,9]],{act:look(MR,'Look behind the door',"Tiles. Whatever was behind the old door, the builders had it in 2004.")});
+ent('26',[[15,11],[16,11],[17,11],[15,12],[16,12],[17,12]],{block:()=>!propOK(),draw:c=>{ if(!propOK()) dRubble(c); },
+  act:()=>propOK()?null:{label:'Look at the rubble',run:()=>say(G.mira,"The ceiling came down here. Nothing's getting through that.")}});
+ent('26',[[16,11]],{block:()=>propOK(),draw:c=>{ if(propOK()) dProp26(c); },
+  act:()=>propOK()?{label:'Look at the post',run:()=>say(G.mira,"A timber post, boxed in and painted. There are pencil marks up one side, like someone measured a child against it.")}:null});
+ent('26',[[23,1],[24,1]],{block:true,draw:c=>dBath(c),act:look(MR,'Look at the bath',"The bath. Full of plaster.")});
+ent('26',[[18,1]],{block:true,draw:c=>dSink(c),act:look(MR,'Look at the sink',"Cracked straight through.")});
+ent('26',[[22,2]],{draw:c=>dHatch(c,'26'),act:look(MR,'Look up',"A square of plaster in the ceiling where a hatch used to be. Sealed.")});
+ent('26',[[21,13]],{block:()=>!G.roofOpen,draw:c=>dRoofDoor(c),act:()=>{
+  if(G.roofOpen) return null;
+  if(has('key')) return {label:'Unlock the roof door',run:()=>{
+    G.roofOpen=true; G.pocket.splice(G.pocket.indexOf('key'),1); if(sees('26')) thud(); say(G.mira,"It fits. It actually fits.");}};
+  return {label:'Try the roof door',run:()=>say(G.mira,"The roof door. Locked, and the key's been missing for years.")};
+}});
+ent('26',[[12,14]],{block:true,draw:c=>dDish(c),act:look(MR,'Look at the dish',"A satellite dish pointed at nothing.")});
+ent('26',[[25,14]],{draw:c=>dPipe(c,'26'),act:()=>({label:'Look at the downpipe',run:()=>say(G.mira,G.pipeFixed
+  ?"An old collar on the downpipe. Sound. The wall under it is dry."
+  :"The downpipe collar's cracked. Thirty years of water straight down this wall — right onto the ladder bracket.")})});
+ent('26',[[25,15]],{draw:c=>dLadder(c,'26'),act:()=>({label:G.pipeFixed?'Climb down the fire escape':'Look at the fire escape',run:()=>{
+  if(G.pipeFixed){ win(); return; }
+  let s="There's no ladder. Four bolt holes and a long rust stain.";
+  if(G.painted) s+=" Flakes of old green paint on what's left of the bracket. Didn't help.";
+  if(G.oiled) s+=" Someone oiled these bolts once. Didn't help either.";
+  say(G.mira,s);}})});
+
+const IDX={'95':{},'26':{}};
+for(const era of ['95','26']) for(const e of ENTS[era]) for(const [x,y] of e.tiles){ const k=x+','+y; (IDX[era][k]=IDX[era][k]||[]).push(e); }
+const entsAt=(era,x,y)=>IDX[era][x+','+y]||[];
+const blk=e=>typeof e.block==='function'?e.block():e.block;
+function walkable(era,x,y){ if(!'.D,'.includes(tileAt(era,x,y))) return false; for(const e of entsAt(era,x,y)) if(blk(e)) return false; return true; }
+function entAction(era,x,y){ for(const e of entsAt(era,x,y)) if(e.act){ const a=e.act(); if(a) return a; } return null; }
+function tileFlavor(ch,x,y){
+  const t=tileAt(ch.era,x,y);
+  if(ch.era==='95'){
+    if(t==='=') return {label:'Look down the stairs',run:()=>say(G.jan,"Downstairs is the Soukups' floor. Nothing for you down there tonight.")};
+    if(t==='w') return {label:'Look out of the window',run:()=>say(G.jan,"Vrbna Street. A tram goes by, lit up and empty.")};
+    if(t==='p') return {label:'Look over the edge',run:()=>say(G.jan,"A long way down. The street's quiet.")};
+  } else {
+    if(t==='X') return {label:'Look down',run:()=>say(G.mira,x<=5?"The stairs are gone. So is most of the floor below.":"The floor's gone here. I can see straight down into the flat underneath.")};
+    if(t==='w') return {label:'Look at the window',run:()=>say(G.mira,"Boarded up.")};
+    if(t==='p') return {label:'Look over the edge',run:()=>say(G.mira,"Thirty metres down, and the street's full of blue lights.")};
+  }
+  return null;
+}
+function findTarget(ch){
+  const [dx,dy]=DIRS[ch.dir], cands=[[ch.x+dx,ch.y+dy],[ch.x,ch.y]];
+  for(const d of Object.values(DIRS)) cands.push([ch.x+d[0],ch.y+d[1]]);
+  for(const [x,y] of cands){ const a=entAction(ch.era,x,y); if(a) return Object.assign({x,y},a); }
+  const f=tileFlavor(ch,ch.x+dx,ch.y+dy); return f?Object.assign({x:ch.x+dx,y:ch.y+dy},f):null;
+}
+
+/* ====================================================================== MOVEMENT */
+const held=new Set();
+const KM_J={w:'up',s:'down',a:'left',d:'right'}, KM_M={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'}, KM_ALL=Object.assign({},KM_J,KM_M);
+const meChar=()=>MODE==='host'?G.jan:MODE==='client'?G.mira:null;
+function km(ch){ if(MODE==='local') return ch===G.jan?KM_J:KM_M; return ch===meChar()?KM_ALL:{}; }
+function heldDir(ch){ const m=km(ch); let d=null; for(const k of held) if(m[k]) d=m[k]; return d; }
+function step(ch,d){ ch.dir=d; const nx=ch.x+DIRS[d][0], ny=ch.y+DIRS[d][1]; if(walkable(ch.era,nx,ny)){ ch.tx=nx; ch.ty=ny; ch.moving=true; ch.mt=0; } }
+function faceTo(ch,x,y){ const d=dirOf(Math.sign(x-ch.x),Math.sign(y-ch.y)); if(d&&(Math.abs(x-ch.x)+Math.abs(y-ch.y)===1)) ch.dir=d; }
+function act(ch){
+  if(!ch||!G.started||G.paused||G.over) return;
+  if(MODE==='client'&&ch===G.mira){ CL.reqs.push({s:++CL.seq,k:'act',x:ch.x,y:ch.y,d:DI[ch.dir]}); pushPresence(true); return; }
+  const t=findTarget(ch); if(!t) return; faceTo(ch,t.x,t.y); t.run();
+}
+function actAt(ch,x,y){
+  if(MODE==='client'&&ch===G.mira){ faceTo(ch,x,y); CL.reqs.push({s:++CL.seq,k:'at',x:ch.x,y:ch.y,d:DI[ch.dir],tx:x,ty:y}); pushPresence(true); return; }
+  const a=entAction(ch.era,x,y)||tileFlavor(ch,x,y); if(!a) return; faceTo(ch,x,y); a.run();
+}
+function findPath(era,sx,sy,tx,ty){
+  if(sx===tx&&sy===ty) return [];
+  const prev=new Map(), q=[[sx,sy]], key=(x,y)=>x+','+y; prev.set(key(sx,sy),null);
+  while(q.length){ const [cx,cy]=q.shift();
+    for(const d of Object.values(DIRS)){ const nx=cx+d[0], ny=cy+d[1], k=key(nx,ny);
+      if(prev.has(k)||!walkable(era,nx,ny)) continue; prev.set(k,[cx,cy]);
+      if(nx===tx&&ny===ty){ const p=[]; let c=[nx,ny]; while(c&&!(c[0]===sx&&c[1]===sy)){ p.unshift(c); c=prev.get(key(c[0],c[1])); } return p; }
+      q.push([nx,ny]); } }
+  return null;
+}
+function goTo(ch,tx,ty){
+  if(tx<0||ty<0||tx>=W||ty>=H) return;
+  const era=ch.era, hasAct=!!(entAction(era,tx,ty)||tileFlavor(ch,tx,ty));
+  if(walkable(era,tx,ty)){
+    const p=findPath(era,ch.x,ch.y,tx,ty); if(!p) return;
+    ch.path=p; ch.pending=entAction(era,tx,ty)?[tx,ty]:null; return;
+  }
+  if(!hasAct) return;
+  let best=null;
+  for(const d of Object.values(DIRS)){ const nx=tx+d[0], ny=ty+d[1];
+    if(nx===ch.x&&ny===ch.y&&!ch.moving){ best=[]; break; }
+    if(!walkable(era,nx,ny)) continue; const p=findPath(era,ch.x,ch.y,nx,ny); if(p&&(!best||p.length<best.length)) best=p; }
+  if(best===null) return;
+  ch.path=best; ch.pending=[tx,ty];
+}
+function arrived(ch){
+  const r=room(ch.era,ch.x,ch.y), k=ch.era+':'+r;
+  if(r&&!G.seen[k]){ G.seen[k]=true; const z=ZONE[k]; const s=typeof z==='function'?z():z; if(s) say(ch,s); }
+  if(ch===G.mira&&propOK()&&!G.propLocked&&inR(ch.x,ch.y,15,11,24,12)){
+    G.propLocked=true; sys("Mira has walked past the post. In 1995 it can't be moved now — it has already held.");
+  }
+}
+function updChar(ch,dt){
+  if(ch.moving){ ch.mt+=dt*SPEED; ch.walk+=dt; if(ch.mt>=1){ ch.moving=false; ch.x=ch.tx; ch.y=ch.ty; ch.mt=0; arrived(ch); } }
+  if(!ch.moving){
+    const d=heldDir(ch);
+    if(d){ ch.path=[]; ch.pending=null; step(ch,d); }
+    else if(ch.path.length){ const [nx,ny]=ch.path.shift(); const d2=dirOf(nx-ch.x,ny-ch.y);
+      if(!d2||!walkable(ch.era,nx,ny)){ ch.path=[]; ch.pending=null; } else step(ch,d2); }
+    else if(ch.pending){ const [px,py]=ch.pending; ch.pending=null; actAt(ch,px,py); }
+  }
+  const k=ch.moving?ch.mt:0; ch.px=ch.x+(ch.tx-ch.x)*k; ch.py=ch.y+(ch.ty-ch.y)*k;
+}
+
+/* ====================================================================== LOOP */
+function tremor(){
+  G.tremors++; G.shake=1.15; if(sees('26')) rumble(1.4);
+  for(let i=0;i<70;i++) G.dust.push(newDust(true));
+  const L=["That one was closer.","The ceiling's going. Please hurry.","I can hear the floor below giving way.","It's getting worse."];
+  if(G.tremors<=L.length) say(G.mira,L[G.tremors-1]);
+  G.nextTremor=G.time+38+Math.random()*22;
+}
+function newDust(burst){ return {x:Math.random()*W*T, y:burst?Math.random()*H*T*.7:-4, vy:8+Math.random()*20, life:2+Math.random()*3, a:.25+Math.random()*.5}; }
+function update(dt){
+  if(MODE==='client'){ updChar(G.mira,dt); return; }
+  G.time+=dt;
+  while(G.script.length&&G.script[0].t<=G.time){ const s=G.script.shift(); if(s.w==='sys') sys(s.x); else say(s.w==='jan'?G.jan:G.mira,s.x); }
+  if(G.time>=G.nextTremor) tremor();
+  updChar(G.jan,dt); if(MODE==='local') updChar(G.mira,dt);
+  if(G.time>=LIMIT) lose();
+}
+function fx(dt){
+  G.vt+=dt; G.shake=Math.max(0,G.shake-dt);
+  if(G.timers.length){ const due=G.timers.filter(t=>t.t<=G.vt); G.timers=G.timers.filter(t=>t.t>G.vt); due.forEach(t=>t.fn()); }
+  if(Math.random()<dt*9) G.dust.push(newDust(false));
+  for(const p of G.dust){ p.y+=p.vy*dt; p.x+=Math.sin((p.y+p.x)*.05)*.15; p.life-=dt; }
+  G.dust=G.dust.filter(p=>p.life>0&&p.y<H*T);
+  G.dripT-=dt;
+  if(!G.pipeFixed&&G.dripT<=0){ G.drips.push({y:14*T+8,v:0}); G.dripT=.55; }
+  for(const d of G.drips){ d.v+=240*dt; d.y+=d.v*dt; }
+  G.drips=G.drips.filter(d=>d.y<15*T+6);
+  G.ripples=G.ripples.filter(r=>G.vt-r.t0<3.6);
+  if(G.started&&!G.over){ G.jan.target=findTarget(G.jan); G.mira.target=findTarget(G.mira); }
+  else { G.jan.target=null; G.mira.target=null; }
+}
+let last=performance.now();
+function tick(){
+  const now=performance.now(); let rem=Math.min(2,(now-last)/1000); last=now;
+  if(MODE==='host') hostSync(); else if(MODE==='client') clientSync();
+  while(rem>0){ const dt=Math.min(.05,rem); rem-=dt; if(!G.paused){ if(G.started&&!G.over) update(dt); fx(dt); } }
+  if(G.endAt&&now>=G.endAt){ G.endAt=null; showEnd(); }
+}
+function frame(){ tick(); draw(); hud(); overlays(); requestAnimationFrame(frame); }
+setInterval(()=>{ if(document.hidden) tick(); },100);
+
+/* ====================================================================== DRAW: helpers */
+function rr(c,x,y,w,h,r){ r=Math.min(r,w/2,h/2); c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+function box(c,x,y,w,h,col,r){ c.fillStyle=col; rr(c,x,y,w,h,r==null?2:r); c.fill(); }
+function line(c,x1,y1,x2,y2,col,w){ c.strokeStyle=col; c.lineWidth=w||1; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.stroke(); }
+function icon(c,it,cx,cy,s,alpha){
+  c.save(); c.globalAlpha*=alpha==null?1:alpha; c.translate(cx,cy); c.scale(s||1,s||1); c.lineCap='round';
+  if(it==='crowbar'){ c.rotate(-.65); line(c,-9,0,8,0,'#a3382a',3.2); c.strokeStyle='#a3382a'; c.lineWidth=3.2; c.beginPath(); c.arc(8,-3.5,3.5,Math.PI*.5,Math.PI*1.75,true); c.stroke(); }
+  else if(it==='key'){ c.strokeStyle='#d9b34a'; c.lineWidth=2.4; c.beginPath(); c.arc(-5,0,3.6,0,Math.PI*2); c.stroke(); line(c,-1.4,0,8,0,'#d9b34a',2.4); line(c,5,0,5,3.6,'#d9b34a',2); line(c,8,0,8,3,'#d9b34a',2); }
+  else if(it==='wrench'){ c.rotate(.6); line(c,-8,0,6,0,'#9aa3a8',3); c.strokeStyle='#9aa3a8'; c.lineWidth=2.6; c.beginPath(); c.arc(8,0,3.6,Math.PI*.35,Math.PI*1.65); c.stroke(); }
+  else if(it==='prop'){ c.rotate(-.5); box(c,-11,-2.5,22,5,'#a5763f',1); line(c,-9,-.5,9,-.5,'rgba(0,0,0,.25)',.8); }
+  c.restore();
+}
+function mark(c,x,y,it){ const cx=x*T+T-6, cy=y*T+6; c.fillStyle='rgba(20,12,6,.78)'; c.beginPath(); c.arc(cx,cy,6.5,0,Math.PI*2); c.fill(); c.strokeStyle='rgba(226,167,68,.8)'; c.lineWidth=1; c.stroke(); icon(c,it,cx,cy,.42); }
+
+/* ====================================================================== DRAW: tiles */
+const FL={
+  '95':{landing:'#7b6c59',back:'#6d4b2f',corridor:'#6a4a2e',drying:'#77705f',door:'#5a3c25'},
+  '26':{landing:'#50575c',big:'#6b685f',corridor:'#4a5156',bath:'#a9b1b5',door:'#3c444a'}
+};
+function drawTiles(c,era){
+  const M=MAPS[era];
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const t=M[y][x], X=x*T, Y=y*T, r=hash(x,y,era==='95'?1:2);
+    if(t==='.'||t==='D') dFloor(c,era,x,y,X,Y,r,t==='D');
+    else if(t===',') dGravel(c,era,x,y,X,Y);
+    else if(t==='=') dStairs(c,X,Y,y);
+    else if(t==='X') dHole(c,era,x,y,X,Y);
+    else if(t==='p') dParapet(c,era,x,y,X,Y);
+    else dWall(c,era,x,y,X,Y,t==='w');
+  }
+}
+function planks(c,X,Y,base,r,h){ h=h||6; for(let i=0;i<T/h;i++){ const v=hash(X+i,Y,7)*.14-.07; c.fillStyle=shade(base,v); c.fillRect(X,Y+i*h,T,h); c.fillStyle='rgba(0,0,0,.18)'; c.fillRect(X,Y+i*h+h-.8,T,.8); c.fillRect(X+((hash(X,Y+i,3)*T)|0),Y+i*h,.8,h); } }
+function shade(hex,v){ const n=parseInt(hex.slice(1),16); let r=n>>16,g=(n>>8)&255,b=n&255; const f=v<0?0:255, p=Math.abs(v); r=Math.round(r+(f-r)*p); g=Math.round(g+(f-g)*p); b=Math.round(b+(f-b)*p); return `rgb(${r},${g},${b})`; }
+function dFloor(c,era,x,y,X,Y,r,door){
+  const rm=room(era,x,y);
+  if(door){ c.fillStyle=FL[era].door; c.fillRect(X,Y,T,T); c.fillStyle='rgba(0,0,0,.25)'; c.fillRect(X,Y,T,2); c.fillRect(X,Y+T-2,T,2); return; }
+  if(era==='95'){
+    if(rm==='kitchen'){ for(let i=0;i<2;i++) for(let j=0;j<2;j++){ c.fillStyle=((x*2+i+y*2+j)%2)?'#c7b98f':'#73875f'; c.fillRect(X+i*T/2,Y+j*T/2,T/2,T/2);} return; }
+    if(rm==='back'){ planks(c,X,Y,FL['95'].back,r); return; }
+    if(rm==='corridor'){ planks(c,X,Y,FL['95'].corridor,r); const ry0=y===11?Y+9:Y, ry1=y===11?Y+T:Y+15; c.fillStyle='#7d2c27'; c.fillRect(X,ry0,T,ry1-ry0); c.fillStyle='#c79a4a'; if(y===11) c.fillRect(X,Y+11,T,1); else c.fillRect(X,Y+12.5,T,1); return; }
+    if(rm==='drying'){ c.fillStyle=FL['95'].drying; c.fillRect(X,Y,T,T); c.fillStyle='rgba(0,0,0,.08)'; for(let i=0;i<4;i++) c.fillRect(X+hash(x,y,i)*T,Y+hash(y,x,i)*T,1.5,1.5); return; }
+    c.fillStyle=FL['95'].landing; c.fillRect(X,Y,T,T);
+    for(let i=0;i<9;i++){ c.fillStyle=hash(x,y,i+20)>.5?'rgba(255,240,210,.18)':'rgba(0,0,0,.15)'; c.fillRect(X+hash(x,y,i)*T,Y+hash(y,x,i+5)*T,1.3,1.3); }
+    return;
+  }
+  if(rm==='bath'){ c.fillStyle=FL['26'].bath; c.fillRect(X,Y,T,T); c.fillStyle='#86909a'; c.fillRect(X,Y,T,.8); c.fillRect(X,Y+T/2,T,.8); c.fillRect(X,Y,.8,T); c.fillRect(X+T/2,Y,.8,T); return; }
+  if(rm==='big'){ planks(c,X,Y,FL['26'].big,r,8); c.fillStyle='rgba(200,200,190,.06)'; c.fillRect(X,Y,T,T); return; }
+  c.fillStyle=rm==='corridor'?FL['26'].corridor:FL['26'].landing; c.fillRect(X,Y,T,T);
+  if(r>.62){ c.strokeStyle='rgba(0,0,0,.45)'; c.lineWidth=.8; c.beginPath(); let px=X+hash(x,y,9)*T, py=Y; c.moveTo(px,py); for(let i=1;i<=4;i++){ px+= (hash(x,y,i+40)-.5)*10; py+=T/4; c.lineTo(px,py);} c.stroke(); }
+}
+function dGravel(c,era,x,y,X,Y){
+  c.fillStyle=era==='95'?'#6a6357':'#3c4346'; c.fillRect(X,Y,T,T);
+  for(let i=0;i<12;i++){ c.fillStyle=hash(x,y,i+60)>.5?'rgba(255,255,255,.12)':'rgba(0,0,0,.2)'; c.fillRect(X+hash(x,y,i+70)*T,Y+hash(y,x,i+80)*T,1.6,1.6); }
+  if(era==='26'&&hash(x,y,99)>.72){ c.fillStyle='rgba(30,55,70,.75)'; c.beginPath(); c.ellipse(X+T/2,Y+T/2,9,4.5,0,0,Math.PI*2); c.fill(); c.fillStyle='rgba(150,190,210,.18)'; c.fillRect(X+T/2-4,Y+T/2-2,5,1); }
+}
+function dStairs(c,X,Y,y){ c.fillStyle=shade('#4d3a2a',-(y-13)*.12); c.fillRect(X,Y,T,T); for(let i=0;i<4;i++){ c.fillStyle='rgba(0,0,0,.3)'; c.fillRect(X,Y+i*6+5,T,1.4); c.fillStyle='rgba(255,220,180,.06)'; c.fillRect(X,Y+i*6,T,1); } }
+function dHole(c,era,x,y,X,Y){
+  c.fillStyle='#040506'; c.fillRect(X,Y,T,T);
+  const M=MAPS[era]; c.fillStyle='#3d4448';
+  const nb=[[0,-1,0],[0,1,1],[-1,0,2],[1,0,3]];
+  for(const [dx,dy,s] of nb){ const n=M[y+dy]&&M[y+dy][x+dx]; if(n&&n!=='X'&&n!=='#'){ c.beginPath();
+      for(let i=0;i<=6;i++){ const f=i/6, j=2+hash(x+i,y+s,s)*5; const px= s<2? X+f*T : (s===2? X+j : X+T-j); const py= s<2? (s===0? Y+j : Y+T-j) : Y+f*T; if(i===0){ c.moveTo(s<2?X:(s===2?X:X+T), s<2?(s===0?Y:Y+T):Y);} c.lineTo(px,py); }
+      c.lineTo(s<2?X+T:(s===2?X:X+T), s<2?(s===0?Y:Y+T):Y+T); c.closePath(); c.fill(); } }
+  if(hash(x,y,5)>.5) line(c,X+4,Y+hash(x,y,6)*T,X+T-3,Y+hash(x,y,7)*T,'#7a4a2a',1);
+}
+function dParapet(c,era,x,y,X,Y){ c.fillStyle=era==='95'?'#4a4239':'#2b3135'; c.fillRect(X,Y,T,T); c.fillStyle=era==='95'?'#62584a':'#3e474d'; if(y===16) c.fillRect(X,Y,T,4); else c.fillRect(x===7?X+T-4:X,Y,4,T); }
+function dWall(c,era,x,y,X,Y,win){
+  const p=era==='95'?{w:'#271c15',f:'#3b2b1f',t:'#5a432e'}:{w:'#181d22',f:'#262e35',t:'#3a4652'};
+  c.fillStyle=p.w; c.fillRect(X,Y,T,T);
+  const below=tileAt(era,x,y+1), above=tileAt(era,x,y-1), solid=ch=>ch==='#'||ch==='w'||ch==='p';
+  if(!solid(below)){ c.fillStyle=p.f; c.fillRect(X,Y+T-7,T,7); }
+  if(!solid(above)&&y>0){ c.fillStyle=p.t; c.fillRect(X,Y,T,1.5); }
+  if(win){
+    if(x===W-1){ if(era==='95'){ box(c,X+1,Y+3,5,T-6,'#e9c27a',1); } else { box(c,X+1,Y+3,5,T-6,'#4a3e33',1); line(c,X+1,Y+6,X+6,Y+T-6,'#2a231d',1); } }
+    else if(era==='95'){ box(c,X+3,Y+T-9,T-6,6,'#e9c27a',1); c.fillStyle='rgba(255,230,170,.35)'; c.fillRect(X+3,Y+T-9,T-6,2); }
+    else { box(c,X+2,Y+T-9,T-4,7,'#56473a',1); line(c,X+2,Y+T-6,X+T-2,Y+T-5,'#2d251e',1); }
+  }
+}
+
+/* ====================================================================== DRAW: things */
+function dStove(c){ const X=7*T,Y=T; box(c,X+2,Y,T-4,T-4,'#d8d0bd',2); c.fillStyle='#3a3530'; for(const [a,b] of [[7,6],[16,6],[7,14],[16,14]]){ c.beginPath(); c.arc(X+a,Y+b,2.6,0,Math.PI*2); c.fill(); } }
+function dTable(c){ const X=8*T,Y=4*T; box(c,X+2,Y+3,2*T-4,T-6,'#7b5634',3); box(c,X+T-2,Y+6,12,8,'#3a2c20',1.5); const g=.6+.4*Math.sin(G.vt*3); c.fillStyle=`rgba(255,190,90,${.5+.4*g})`; c.fillRect(X+T+1,Y+8,5,2); }
+function dBed(c){ const X=15*T,Y=2*T; box(c,X+1,Y-4,2*T-2,T+2,'#c8b9a0',3); box(c,X+1,Y+2,2*T-2,T-4,'#6d4f6e',2); box(c,X+4,Y-2,12,6,'#ece3d2',2); }
+function dHatch(c,era){ const X=22*T,Y=2*T; c.save(); if(era==='95'){ c.setLineDash([3,2]); c.strokeStyle='rgba(255,230,190,.35)'; c.lineWidth=1; c.strokeRect(X+3,Y+3,T-6,T-6);} else { c.fillStyle='rgba(215,208,195,.22)'; c.fillRect(X+3,Y+3,T-6,T-6);} c.restore(); }
+function dOil(c){ const X=19*T,Y=14*T; box(c,X+7,Y+8,10,10,'#6c7a3c',1.5); line(c,X+15,Y+9,X+20,Y+5,'#6c7a3c',1.6); }
+function dPaint(c){ const X=20*T,Y=14*T; box(c,X+6,Y+7,12,11,'#3f6b4a',2); c.fillStyle='#2c4c35'; c.fillRect(X+6,Y+7,12,2.5); }
+function dPipe(c,era){ const X=25*T,Y=14*T; box(c,X+9,Y-T,6,2*T,era==='95'?'#5b5f5c':'#5a463a',1); c.fillStyle=era==='95'?(G.pipeFixed?'#a7b0ad':'#7a4a2a'):(G.pipeFixed?'#6e6a62':'#8a4a2a'); c.fillRect(X+7.5,Y+6,9,4);
+  if(!G.pipeFixed){ c.fillStyle='#0d0f10'; c.fillRect(X+11,Y+6,1.4,4); if(era==='26'){ const g=c.createLinearGradient(0,Y+8,0,Y+2*T); g.addColorStop(0,'rgba(150,75,35,.85)'); g.addColorStop(1,'rgba(150,75,35,0)'); c.fillStyle=g; c.fillRect(X+3,Y+8,10,2*T-8); } } }
+function dLadder(c,era){ const X=25*T,Y=15*T;
+  if(era==='95'||G.pipeFixed){ const col=era==='95'?(G.painted?'#3f7a52':'#4b5a4f'):(G.painted?'#5b5a3f':'#6a4a35'); line(c,X+5,Y+1,X+5,Y+T+6,col,2); line(c,X+15,Y+1,X+15,Y+T+6,col,2); for(let i=0;i<4;i++) line(c,X+5,Y+4+i*6,X+15,Y+4+i*6,col,1.6); }
+  else { c.fillStyle='#120d0a'; for(const [a,b] of [[5,4],[15,4],[5,12],[15,12]]){ c.beginPath(); c.arc(X+a,Y+b,1.4,0,Math.PI*2); c.fill(); } line(c,X+5,Y+2,X+7,Y+7,'#6a4a35',2); if(G.painted){ c.fillStyle='#4f7a52'; c.fillRect(X+6,Y+3,2,1.5);} } }
+function dRad26(c){ const X=T+2,Y=7*T+3; box(c,X,Y,7,18,'#d6dcdf',1); c.fillStyle='#a9b2b6'; for(let i=0;i<5;i++) c.fillRect(X+1,Y+2+i*3.4,5,.8); }
+function dBrick(c){ const X=5*T+2,Y=2*T+1; box(c,X,Y,20,22,'#7a4b3a',1); c.strokeStyle='#4e2f24'; c.lineWidth=.8; for(let r=0;r<5;r++){ const yy=Y+4.4*r; line(c,X,yy,X+20,yy,'#4e2f24',.8); for(let k=0;k<3;k++){ const xx=X+(r%2?3:8)+k*7; if(xx<X+20) line(c,xx,yy,xx,yy+4.4,'#4e2f24',.8); } } }
+function dStep(c,era){ const X=3*T,Y=12*T; box(c,X+2,Y+9,T-4,10,era==='95'?'#8b6743':'#5f615d',1.5); c.fillStyle=era==='95'?'#5a3f27':'#393b39'; c.fillRect(X+3,Y+18,T-6,1.5); c.fillStyle='rgba(255,255,255,.08)'; c.fillRect(X+2,Y+9,T-4,1); }
+function dChimney(c,era){ const X=8*T+1,Y=T; box(c,X,Y-2,2*T-2,T-4,era==='95'?'#7b4030':'#8a8679',2); c.fillStyle='#0b0b0b'; c.fillRect(X+15,Y,16,6);
+  if(era==='95'){ for(let r=0;r<4;r++) line(c,X,Y+1+r*5,X+2*T-2,Y+1+r*5,'rgba(0,0,0,.25)',.8); }
+  else { c.fillStyle='#6d695f'; c.beginPath(); c.moveTo(X+30,Y+17); c.lineTo(X+40,Y+10); c.lineTo(X+44,Y+18); c.fill(); } }
+function dCounter26(c,x){ const X=x*T,Y=T; box(c,X+1,Y-1,T-2,T-4,'#9aa2a6',1.5); c.fillStyle='#7d868b'; c.fillRect(X+4,Y+12,T-8,1.5); }
+function dSofa(c){ const X=15*T,Y=2*T; box(c,X+1,Y-3,2*T-2,T,'#4f5d63',4); box(c,X+4,Y+1,2*T-8,T-8,'#5d6c73',3); }
+function dRubble(c){ for(let y=11;y<=12;y++) for(let x=15;x<=17;x++){ const X=x*T,Y=y*T;
+  for(let i=0;i<6;i++){ const cx=X+hash(x,y,i)*T, cy=Y+hash(y,x,i+3)*T, s=4+hash(x,y,i+9)*7; c.fillStyle=['#5d6266','#6f7478','#45494d','#7b746a'][i%4]; c.beginPath(); c.moveTo(cx-s,cy+s*.4); c.lineTo(cx-s*.2,cy-s*.7); c.lineTo(cx+s*.8,cy-s*.2); c.lineTo(cx+s*.5,cy+s*.6); c.closePath(); c.fill(); }
+  line(c,X+3,Y+hash(x,y,30)*T,X+T-2,Y+hash(x,y,31)*T,'#7a4a2a',1); } }
+function dProp26(c){ const X=16*T,Y=11*T; c.fillStyle='rgba(0,0,0,.35)'; c.fillRect(X+8,Y+19,12,4); box(c,X+6,Y+3,12,18,'#d6cdb4',1.5); for(let i=0;i<5;i++) line(c,X+6,Y+6+i*3.2,X+10,Y+6+i*3.2,'#6c6252',.7); }
+function dBath(c){ const X=23*T,Y=T; box(c,X+1,Y-2,2*T-2,T-2,'#cfd6d9',5); box(c,X+4,Y+1,2*T-8,T-8,'#9aa2a6',4); c.fillStyle='#bfb8aa'; c.fillRect(X+12,Y+4,8,5); }
+function dSink(c){ const X=18*T,Y=T; box(c,X+3,Y-2,T-6,14,'#cfd6d9',3); line(c,X+6,Y+2,X+15,Y+9,'#5d666b',1); }
+function dSteel(c){ const X=6*T,Y=5*T; if(G.steelOpen){ box(c,X+T-4,Y-T+4,4,T,'#6d777e',1); return; } box(c,X+1,Y,T-2,T,'#6d777e',1); c.fillStyle='#4a5258'; for(const [a,b] of [[4,4],[T-5,4],[4,T-5],[T-5,T-5]]) c.fillRect(X+a,Y+b,1.6,1.6); line(c,X+5,Y+8,X+14,Y+15,'rgba(255,255,255,.18)',.8); }
+function dRoofDoor(c){ const X=21*T,Y=13*T; if(G.roofOpen){ c.fillStyle='#0c0f11'; c.fillRect(X+2,Y,T-4,T); return; } box(c,X+2,Y,T-4,T,'#59636a',1); box(c,X+T/2-3,Y+T/2-1,6,6,'#b08a3e',1); c.strokeStyle='#b08a3e'; c.lineWidth=1.2; c.beginPath(); c.arc(X+T/2,Y+T/2-1,2.4,Math.PI,0); c.stroke(); }
+function dDish(c){ const X=12*T,Y=14*T; c.fillStyle='#8c959a'; c.beginPath(); c.ellipse(X+T/2,Y+T/2,9,6,-.5,0,Math.PI*2); c.fill(); line(c,X+T/2,Y+T/2,X+T/2+6,Y+T/2-5,'#5d666b',1.2); }
+function dSpot95(c,s){
+  const here=itemAt(s.id);
+  switch(s.id){
+    case 'radiator': { const X=T+2,Y=7*T+3; box(c,X,Y,8,18,'#3b3a37',1.5); c.fillStyle='#5a5853'; for(let i=0;i<4;i++) c.fillRect(X+1,Y+2+i*4,6,1.5); if(here) mark(c,1,7,here); break; }
+    case 'meter': { const X=5*T+3,Y=2*T+2; box(c,X,Y,18,20,'#6e4a2b',2); c.strokeStyle='#4f331d'; c.lineWidth=1; c.strokeRect(X+2.5,Y+2.5,13,15); c.fillStyle='#c9a46a'; c.fillRect(X+13,Y+10,2,2); if(here) mark(c,5,2,here); break; }
+    case 'step': dStep(c,'95'); if(here) mark(c,3,12,here); break;
+    case 'hook': { const X=6*T,Y=4*T; c.fillStyle='#b08a3e'; c.beginPath(); c.arc(X+T/2,Y+T/2-4,2,0,Math.PI*2); c.fill(); if(here) icon(c,here,X+T/2,Y+T/2+3,.6); break; }
+    case 'flue': dChimney(c,'95'); if(here) mark(c,9,1,here); break;
+    case 'drawer': { const X=10*T,Y=T; box(c,X+1,Y-1,T-2,T-4,'#8c6a43',1.5); c.fillStyle='#5f462b'; c.fillRect(X+4,Y+7,T-8,1.2); c.fillStyle='#d8b06a'; c.fillRect(X+T/2-2,Y+10,4,1.6); if(here) mark(c,10,1,here); break; }
+    case 'back': if(here==='prop'){ const X=16*T,Y=8*T; box(c,X+9,Y-14,7,T+12,'#a5763f',1.5); line(c,X+11,Y-12,X+11,Y+T-4,'rgba(0,0,0,.2)',.8); } break;
+    case 'board': { const X=13*T,Y=7*T; c.strokeStyle='rgba(0,0,0,.4)'; c.lineWidth=1; c.strokeRect(X+1.5,Y+8.5,T-3,6); if(here) mark(c,13,7,here); break; }
+    case 'sill': { const X=13*T,Y=0; c.fillStyle='#a07b4c'; c.fillRect(X+2,Y+T-3,T-4,3); if(here) mark(c,13,0,here); break; }
+    case 'crack': { const X=16*T,Y=11*T; c.strokeStyle='rgba(20,10,5,.75)'; c.lineWidth=1.1; c.beginPath(); c.moveTo(X-8,Y+4); c.lineTo(X+5,Y+9); c.lineTo(X+10,Y+5); c.lineTo(X+18,Y+12); c.lineTo(X+T+8,Y+8); c.stroke();
+      c.fillStyle='rgba(230,215,190,.35)'; for(let i=0;i<7;i++) c.fillRect(X+hash(i,3,4)*T,Y+12+hash(i,5,6)*10,1.3,1.3);
+      if(here==='prop'){ c.fillStyle='rgba(0,0,0,.35)'; c.fillRect(X+8,Y+19,12,4); box(c,X+7,Y+2,10,19,'#a5763f',1.5); line(c,X+9,Y+4,X+9,Y+19,'rgba(0,0,0,.22)',.8); } break; }
+    case 'drying': if(here) icon(c,here,19*T+T/2,9*T+T/2+2,.85); break;
+  }
+}
+function dSheets(c){ for(const yy of [3.3,6.3]){ const Y=yy*T; line(c,18*T+2,Y,25*T-2,Y,'rgba(220,210,190,.55)',.8); for(let i=0;i<3;i++){ const X=18.4*T+i*2.2*T+Math.sin(G.vt*1.4+i)*1.2; c.fillStyle='rgba(236,228,212,.42)'; c.fillRect(X,Y,1.5*T,10); } } }
+
+/* ====================================================================== DRAW: characters & overlays */
+const LOOK={'95':{body:'#8a5530',hair:'#3b2a1c',skin:'#e3c09a'},'26':{body:'#2f7182',hair:'#1d1a18',skin:'#e0b893'}};
+function dChar(c,ch){
+  const L=LOOK[ch.era], x=ch.px*T+T/2, y=ch.py*T+T/2+(ch.moving?Math.sin(ch.walk*16)*1:0);
+  c.fillStyle='rgba(0,0,0,.38)'; c.beginPath(); c.ellipse(x,y+8,7.5,3.5,0,0,Math.PI*2); c.fill();
+  c.fillStyle=L.body; c.beginPath(); c.arc(x,y+1.5,7.2,0,Math.PI*2); c.fill();
+  const [dx,dy]=DIRS[ch.dir];
+  c.fillStyle=L.hair; c.beginPath(); c.arc(x+dx*1.2,y-3+dy*1.2,4.7,0,Math.PI*2); c.fill();
+  if(ch.dir!=='up'){ c.fillStyle=L.skin; c.beginPath(); c.arc(x+dx*2.6,y-2+dy*2.4,3.1,0,Math.PI*2); c.fill(); }
+  const it=ch===G.jan?ch.hand:G.pocket[G.pocket.length-1];
+  if(it) icon(c,it,x+9,y+5,.55);
+}
+function wrap(c,text,maxW){ const words=text.split(' '), out=[]; let cur=''; for(const w of words){ const t=cur?cur+' '+w:w; if(c.measureText(t).width>maxW&&cur){ out.push(cur); cur=w; } else cur=t; } if(cur) out.push(cur); return out; }
+function dBubble(c,ch){
+  const b=ch.bubble; if(!b) return; const age=G.vt-b.at; if(age>b.dur){ ch.bubble=null; return; }
+  const a=Math.min(1,age*6,(b.dur-age)*2.5);
+  c.save(); c.globalAlpha=a; c.font='500 11px Karla, system-ui, sans-serif';
+  const lines=wrap(c,b.text,196), w=Math.max(...lines.map(l=>c.measureText(l).width))+14, h=lines.length*13.5+9;
+  const cx=ch.px*T+T/2, cy=ch.py*T; let x=Math.max(3,Math.min(W*T-w-3,cx-w/2)), y=cy-h-8, below=false;
+  if(y<3){ y=cy+T+6; below=true; }
+  c.fillStyle=ch.era==='95'?'#f4e7cf':'#dfe9ef'; rr(c,x,y,w,h,5); c.fill();
+  c.beginPath(); if(below){ c.moveTo(cx-4,y); c.lineTo(cx,y-5); c.lineTo(cx+4,y);} else { c.moveTo(cx-4,y+h); c.lineTo(cx,y+h+5); c.lineTo(cx+4,y+h);} c.fill();
+  c.fillStyle=ch.era==='95'?'#2a1d12':'#0f171c'; lines.forEach((l,i)=>c.fillText(l,x+7,y+15+i*13.5));
+  c.restore();
+}
+function dPrompt(c,ch){
+  const t=ch.target; if(!t||ch.moving||ch.path.length) return;
+  const key=ch.era==='95'?'E':'⏎', txt=t.label;
+  c.save(); c.font='700 10px Karla, system-ui, sans-serif';
+  const w=c.measureText(txt).width+28, cx=t.x*T+T/2, under=(t.x===ch.x&&t.y>=ch.y);
+  let x=Math.max(3,Math.min(W*T-w-3,cx-w/2)), y=under?t.y*T+T+3:t.y*T-17; if(y<3) y=t.y*T+T+3; if(y>H*T-18) y=Math.min(t.y,ch.y)*T-17;
+  c.fillStyle=ch.era==='95'?'rgba(226,167,68,.96)':'rgba(127,180,202,.96)'; rr(c,x,y,w,15,3); c.fill();
+  c.fillStyle='rgba(0,0,0,.35)'; rr(c,x+2,y+2,14,11,2); c.fill();
+  c.fillStyle='#fff'; c.fillText(key,x+5.6,y+11); c.fillStyle='#101214'; c.fillText(txt,x+20,y+11);
+  c.restore();
+}
+function dRipples(c,era){
+  for(const r of G.ripples){ if(r.era!==era) continue; const age=G.vt-r.t0, cx=r.x*T+T/2, cy=r.y*T+T/2, col=r.good?'143,208,164':'224,122,90';
+    if(age<1.6){ for(const off of [0,.35]){ const a=age-off; if(a<0) continue; c.strokeStyle=`rgba(${col},${Math.max(0,1-a/1.25)})`; c.lineWidth=2; c.beginPath(); c.arc(cx,cy,6+a*T*1.9,0,Math.PI*2); c.stroke(); } }
+    const fa=Math.min(1,(3.6-age)/.7); c.save(); c.globalAlpha=Math.max(0,fa); c.font='700 10px Karla, system-ui, sans-serif';
+    const w=c.measureText(r.text).width+12, ty=cy-T-age*5; let x=Math.max(3,Math.min(W*T-w-3,cx-w/2)), y=Math.max(3,ty);
+    c.fillStyle=`rgba(${col},.95)`; rr(c,x,y,w,15,3); c.fill(); c.fillStyle='#0e1110'; c.fillText(r.text,x+6,y+11); c.restore(); }
+}
+const DARK=document.createElement('canvas'); DARK.width=W*T; DARK.height=H*T; const dk=DARK.getContext('2d');
+function dDarkness(c){
+  dk.globalCompositeOperation='source-over'; dk.clearRect(0,0,W*T,H*T); dk.fillStyle='rgba(2,5,8,.6)'; dk.fillRect(0,0,W*T,H*T);
+  dk.globalCompositeOperation='destination-out';
+  const mx=G.mira.px*T+T/2, my=G.mira.py*T+T/2, fl=Math.sin(G.vt*13)*2+Math.sin(G.vt*7.3)*1.5;
+  let g=dk.createRadialGradient(mx,my,T*.6,mx,my,T*5.4+fl); g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(1,'rgba(0,0,0,0)'); dk.fillStyle=g; dk.fillRect(0,0,W*T,H*T);
+  dk.fillStyle='rgba(0,0,0,.42)'; dk.fillRect(7*T,14*T,18*T,2*T);
+  for(const r of G.ripples){ if(r.era!=='26') continue; const a=Math.max(0,1-(G.vt-r.t0)/3.6), cx=r.x*T+T/2, cy=r.y*T+T/2;
+    g=dk.createRadialGradient(cx,cy,2,cx,cy,T*2.4); g.addColorStop(0,`rgba(0,0,0,${a})`); g.addColorStop(1,'rgba(0,0,0,0)'); dk.fillStyle=g; dk.fillRect(cx-T*2.5,cy-T*2.5,T*5,T*5); }
+  c.drawImage(DARK,0,0);
+  const em=(Math.sin(G.vt*5)>0), ea=.07+.05*Math.abs(Math.sin(G.vt*5));
+  c.fillStyle=em?`rgba(70,120,255,${ea})`:`rgba(255,70,70,${ea*.8})`; c.fillRect(7*T,14*T,19*T,3*T);
+}
+function d95Light(c){
+  c.save(); c.globalCompositeOperation='lighter';
+  for(const [x,y,r] of [[9,5,3.6],[14,5,3.2],[11,11.5,3],[21,11.5,3],[21,5,3],[3,6,3.2]]){ const g=c.createRadialGradient(x*T,y*T,0,x*T,y*T,r*T); g.addColorStop(0,'rgba(255,175,90,.12)'); g.addColorStop(1,'rgba(255,175,90,0)'); c.fillStyle=g; c.fillRect(x*T-r*T,y*T-r*T,2*r*T,2*r*T); }
+  c.restore();
+  c.fillStyle='rgba(25,35,70,.32)'; c.fillRect(7*T,14*T,19*T,3*T);
+  const v=c.createRadialGradient(W*T/2,H*T/2,H*T*.35,W*T/2,H*T/2,W*T*.62); v.addColorStop(0,'rgba(15,8,0,0)'); v.addColorStop(1,'rgba(15,8,0,.5)'); c.fillStyle=v; c.fillRect(0,0,W*T,H*T);
+}
+
+const CV={'95':document.getElementById('cv95'),'26':document.getElementById('cv26')};
+function fit(){ for(const e of ['95','26']){ const cv=CV[e], w=cv.clientWidth||600, dpr=Math.min(2,window.devicePixelRatio||1), pw=Math.round(w*dpr), ph=Math.round(w*H/W*dpr); if(cv.width!==pw||cv.height!==ph){ cv.width=pw; cv.height=ph; } cv._s=pw/(W*T); } }
+function drawEra(era){
+  const cv=CV[era], c=cv.getContext('2d'); if(!cv._s) fit();
+  c.setTransform(1,0,0,1,0,0); c.fillStyle='#000'; c.fillRect(0,0,cv.width,cv.height); c.setTransform(cv._s,0,0,cv._s,0,0);
+  if(era==='26'&&G.shake>0){ const m=G.shake*3.2; c.translate((Math.random()-.5)*m,(Math.random()-.5)*m); }
+  drawTiles(c,era);
+  for(const e of ENTS[era]) if(e.draw) e.draw(c);
+  if(era==='26') for(const [x,y] of [[1,12],[5,12],[2,11],[12,4],[15,6],[12,6],[9,8],[20,12],[23,11]]){ for(let i=0;i<3;i++){ c.fillStyle=['#6b7074','#55595d','#7a7369'][i]; c.fillRect(x*T+hash(x,y,i)*T*.8,y*T+hash(y,x,i)*T*.8,2.5+hash(x,i,y)*3,2+hash(i,y,x)*2); } }
+  const ch=era==='95'?G.jan:G.mira; dChar(c,ch);
+  if(era==='95'){ dSheets(c); for(const d of G.drips){ c.fillStyle='rgba(170,200,215,.85)'; c.fillRect(25*T+11,d.y,1.6,3); } d95Light(c); }
+  else { dDarkness(c); for(const p of G.dust){ c.fillStyle=`rgba(205,215,222,${p.a})`; c.fillRect(p.x,p.y,1.2,1.2); } }
+  dBubble(c,ch); if(G.started&&!G.over&&!G.paused) dPrompt(c,ch); dRipples(c,era);
+}
+function draw(){ if(MODE!=='client') drawEra('95'); if(MODE!=='host') drawEra('26'); }
+
+/* ====================================================================== HUD & UI */
+let lastHud={};
+const $=id=>document.getElementById(id);
+function put(id,html,attr){ const k=id+(attr||''); if(lastHud[k]===html) return; lastHud[k]=html; if(attr) $(id)[attr]=html; else $(id).innerHTML=html; }
+function nextObj(){ if(!G.steelOpen) return 'door'; if(!G.roofOpen&&!has('key')) return 'key'; if(!propOK()) return 'hall'; if(!G.roofOpen) return 'roofdoor'; if(!G.pipeFixed) return 'ladder'; return 'climb'; }
+function fmtClock(sec){ const m=CLOCK0+Math.floor(sec/60); return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+function hud(){
+  const left=Math.max(0,LIMIT-G.time), low=left<90;
+  put('tv',`${Math.floor(left/60)}:${String(Math.floor(left%60)).padStart(2,'0')}`);
+  put('tv',low?'tv low':'tv','className');
+  $('tb').style.width=(left/LIMIT*100).toFixed(2)+'%'; put('tb',low?'low':'','className');
+  const P=[['Flat door',G.steelOpen?'done':availToMira('crowbar')?'ready':''],['Roof key',G.roofOpen?'done':availToMira('key')?'ready':''],['Hall',propOK()?'done':''],['Fire escape',G.pipeFixed?'done':'']];
+  put('pips',P.map(([l,s])=>`<span class="pip ${s}">${s==='done'?'✓ ':''}${l}</span>`).join(''));
+  put('nowline',MODE==='host'?`<b>Now</b>You can't see 2026. Mira has to tell you what's in her way — and you have to tell her what you've done.`:`<b>Now</b>${G.started?OBJ[nextObj()]:'Press Start.'}`);
+  const hp=MODE==='host'; if($('pipwrap').hidden!==hp) $('pipwrap').hidden=hp;
+  const hn=MODE==='local'; if($('netwrap').hidden!==hn) $('netwrap').hidden=hn;
+  if(!hn){ const pp=partner(), o=SEAT==='jan'?'Mira · 2026':'Jan · 1995'; put('netb',pp?`● ${o} is connected`:`○ waiting for ${o}`); put('netb',pp?'netb on':'netb','className'); }
+  put('b-pause',G.paused?'Resume <kbd>P</kbd>':'Pause <kbd>P</kbd>');
+  put('h95',G.jan.hand?`Holding <b>${NAME[G.jan.hand]}</b>`:'Hands empty');
+  put('h26',G.pocket.length?`Carrying <b>${G.pocket.map(i=>NAME[i]).join(', ')}</b>`:'Pockets empty');
+  for(const [id,ch] of [['a95',G.jan],['a26',G.mira]]){ const t=ch.target; put(id,t?t.label:'Nothing in reach','textContent'); const dis=!t||!G.started||G.paused||!!G.over; if($(id).disabled!==dis) $(id).disabled=dis; }
+}
+function hint(){
+  if(!G.started||G.over) return; const o=nextObj();
+  if(G.hintObj!==o){ G.hintObj=o; G.hintLvl=0; } else G.hintLvl=Math.min(2,G.hintLvl+1);
+  $('hint').innerHTML=`<div class="lbl">${['Nudge','Bigger nudge','The answer'][G.hintLvl]}</div>${HINTS[o][G.hintLvl]}`;
+}
+function setPause(p){
+  if(!G.started||G.over) return; held.clear();
+  if(MODE==='client'){ CL.pq++; pushPresence(true); return; }
+  G.paused=p; HS.autoPaused=false; if(MODE==='local') $('pausecard').hidden=!p; pushPresence(true);
+}
+function start(){
+  if(G.started) return; ac(); $('intro').hidden=true; $('endcard').hidden=true;
+  if(MODE==='client'){ CL.go++; pushPresence(true); return; }
+  G.started=true; pushPresence(true);
+}
+function restart(){
+  if(MODE!=='local'&&!G.started&&!G.over) return;
+  if(MODE==='client'){ CL.rr++; pushPresence(true); return; }
+  newGame(); $('endcard').hidden=true; $('pausecard').hidden=true; $('intro').hidden=true; G.started=true; ac(); pushPresence(true);
+}
+function showEnd(){
+  const B=$('endbody');
+  if(G.over==='win'){
+    const mems=[];
+    for(const it of SMALL){ const s=G.items[it]; if(s.taken){ const m=MEM[it+'@'+s.at]||MEM['any@'+s.at]; if(m&&!mems.includes(m)) mems.push(m); } }
+    if(propOK()) mems.push(MEM.prop); if(G.pipeFixed) mems.push(MEM.pipe);
+    const n=MODE==='client'?(G.wn||0):G.waste.size;
+    B.innerHTML=`<div class="lbl">2026 · ${fmtClock(G.time)}</div>
+      <h2>Mira is on the pavement when Vrbna 7 comes down.</h2>
+      <p>Soot to the elbow, plaster in her hair, and no way of explaining any of it to the fire brigade.</p>
+      <div class="lbl" style="margin-top:18px">What thirty-one years did with it</div>
+      <ul class="mem">${mems.map(m=>`<li>${m}</li>`).join('')}${n?`<li class="dim">And ${n} other thing${n>1?'s':''} you did that year that I never knew about at all.</li>`:''}</ul>
+      <p class="exch"><b style="color:var(--cold)">MIRA</b>Dad. I'm out.<br><b style="color:var(--warm)">JAN</b>…Did you just call me Dad?</p>
+      <p style="color:var(--mute)">In 1995, Jan turns the radio off and sits in the kitchen for a long time. Eva comes home on Thursday. In 2001 they have a daughter, and he says he'd like to call her Mira. He never says why.</p>
+      <button class="go" id="b-again">Play again</button>`;
+  } else {
+    B.innerHTML=`<div class="lbl">2026 · 04:00</div>
+      <h2>Vrbna 7 came down with Mira still inside.</h2>
+      <p>In 1995 the radio goes quiet in the middle of a sentence. Jan leaves it on all night anyway.</p>
+      <p style="color:var(--mute)">Everything you worked out still holds — the building is the same every time.</p>
+      <button class="go" id="b-again">Try again</button>`;
+  }
+  $('endcard').hidden=false; $('b-again').addEventListener('click',e=>{ e.currentTarget.blur(); restart(); });
+}
+
+/* ====================================================================== TWO SCREENS */
+const TE=new TextEncoder();
+const otherRole=()=>SEAT==='jan'?'mira':'jan';
+function partner(){ if(MODE==='local') return null; return Net.peers.find(p=>p.pr&&p.pr.g===GAME&&p.pr.r===otherRole())||null; }
+function seatTaken(g,role){ return Net.peers.some(p=>p.pr&&p.pr.g===g&&p.pr.r===role); }
+const cleanName=v=>(String(v||'').toLowerCase().replace(/[^a-z0-9-]/g,'').slice(0,24))||'for-later';
+function netLocal(note){
+  if(Net.kind) return;
+  let bc=null; try{ bc=new BroadcastChannel('vrbna7'); }catch(e){ bc=null; }
+  if(!bc){ Net.kind='none'; Net.note="Two screens can't link up from here."; updLobby(); return; }
+  Net.kind='local'; Net.note=note;
+  const id=Math.random().toString(36).slice(2,10), mine={}, others=new Map();
+  const pub=()=>{ Net.peers=[...others.entries()].map(([k,v])=>({id:k,pr:v.p})); updLobby(); };
+  bc.onmessage=e=>{ const m=e.data||{}; if(m.id===id) return; if(m.bye) others.delete(m.id); else others.set(m.id,{p:m.p||{},at:Date.now()}); pub(); };
+  setInterval(()=>{ bc.postMessage({id,p:mine}); const now=Date.now(); let ch=false; for(const [k,v] of others) if(now-v.at>3500){ others.delete(k); ch=true; } if(ch) pub(); },800);
+  Net.setP=pt=>{ for(const k in pt){ if(pt[k]===null) delete mine[k]; else mine[k]=pt[k]; } bc.postMessage({id,p:mine}); };
+  addEventListener('pagehide',()=>{ try{ bc.postMessage({id,bye:1}); }catch(e){} });
+  updLobby();
+}
+async function netInit(){
+  if(!(window.claude&&typeof window.claude.use==='function')){ netLocal('Not on claude.ai, so two screens only link up between windows of this browser.'); return; }
+  let room=null; try{ room=await window.claude.use('room'); }catch(e){ room=null; }
+  if(!room){ netLocal("Can't reach the shared room from here, so two screens only link up between windows of this browser."); return; }
+  Net.kind='room'; Net.note='Ready. The other player needs this page open on claude.ai too.';
+  Net.setP=pt=>{ room.presence(pt).catch(()=>{}); };
+  room.onPeers(ch=>{ Net.peers=ch.peers.filter(pp=>!pp.sameTab).map(pp=>({id:pp.peer,pr:pp.presence||{}})); updLobby(); },
+    e=>{ Net.note='The shared room closed ('+e.code+'). Reload the page to try again.'; updLobby(); });
+  updLobby();
+}
+function updLobby(){
+  const ms=$('mstatus'); if(!ms) return; const ok=!!Net.setP, g=cleanName($('gname').value);
+  ms.textContent=Net.note;
+  const tj=ok&&seatTaken(g,'jan'), tm=ok&&seatTaken(g,'mira');
+  $('b-jan').disabled=!ok||tj; $('b-mira').disabled=!ok||tm;
+  $('b-jan').textContent=tj?'1995 is taken':"I'm Jan · 1995"; $('b-mira').textContent=tm?'2026 is taken':"I'm Mira · 2026";
+}
+function applyLayout(){
+  $('pane95').hidden=MODE==='client'; $('pane26').hidden=MODE==='host';
+  document.querySelector('.stage').classList.toggle('one',MODE!=='local'); fit();
+}
+function chooseSeat(seat){
+  if(!Net.setP) return; GAME=cleanName($('gname').value); $('gname').value=GAME;
+  if(seatTaken(GAME,seat)){ updLobby(); return; }
+  SEAT=seat; MODE=seat==='jan'?'host':'client'; partnerSeen=0; HS.pid=null;
+  newGame(); applyLayout(); ac(); $('intro').hidden=true; pushPresence(true);
+}
+function leaveSeat(){
+  if(G.started) return;
+  if(Net.setP) Net.setP({g:null,r:null,w:null,e:null,p:null,q:null,go:null,pq:null,rr:null});
+  MODE='local'; SEAT=null; lastPres=''; newGame(); applyLayout(); $('lobby').hidden=true; $('intro').hidden=false; updLobby();
+}
+let lastPres='', lastPresAt=0;
+function worldSnap(){
+  const it={}; for(const k in G.items) it[k]=[G.items[k].at,G.items[k].taken?1:0];
+  return {e:G.epoch, st:G.started?1:0, ov:G.over||0, pz:G.paused?1:0, t:Math.round(G.time*5)/5, it,
+    f:[G.steelOpen,G.roofOpen,G.pipeFixed,G.oiled,G.painted,G.propLocked].map(b=>b?1:0),
+    pk:G.pocket.slice(), ack:HS.ack, tr:G.tremors, wn:G.waste.size, m:[G.mira.x,G.mira.y,DI[G.mira.dir]],
+    lg:G.logTail.map(l=>[l.id,l.w,l.t]), rp:G.rTail.map(r=>[r.id,r.x,r.y,r.good?1:0,r.text])};
+}
+function pushPresence(force){
+  if(MODE==='local'||!Net.setP) return;
+  const now=performance.now(); if(!force&&now-lastPresAt<120) return;
+  let pr, s;
+  if(MODE==='host'){ const w=worldSnap(); pr={g:GAME,r:'jan',w}; s=JSON.stringify(pr); while(TE.encode(s).length>3800&&w.lg.length>1){ w.lg.shift(); s=JSON.stringify(pr); } }
+  else { pr={g:GAME,r:'mira',e:G.epoch,p:[G.mira.x,G.mira.y,DI[G.mira.dir]],q:CL.reqs.map(r=>[r.s,r.k,r.x,r.y,r.d,r.tx==null?-1:r.tx,r.ty==null?-1:r.ty]),go:CL.go,pq:CL.pq,rr:CL.rr}; s=JSON.stringify(pr); }
+  if(s===lastPres) return; lastPres=s; lastPresAt=now; Net.setP(pr);
+}
+function setMiraPos(m){ const c=G.mira; c.x=c.tx=c.px=m[0]; c.y=c.ty=c.py=m[1]; c.dir=DN[m[2]]||'down'; c.moving=false; c.mt=0; }
+function hostSync(){
+  const pp=partner(), now=performance.now(), pr=pp&&pp.pr; if(pp) partnerSeen=now;
+  const gone=!pp&&now-partnerSeen>2000;
+  if(G.started&&!G.over){ if(gone&&!G.paused){ G.paused=true; HS.autoPaused=true; } else if(!gone&&HS.autoPaused){ G.paused=false; HS.autoPaused=false; } }
+  if(pr){
+    if(pp.id!==HS.pid){ HS.pid=pp.id; HS.go=pr.go||0; HS.pq=pr.pq||0; HS.rr=pr.rr||0; }
+    if(pr.e===G.epoch){
+      if(Array.isArray(pr.p)){ const [x,y,d]=pr.p; if(x!==G.mira.x||y!==G.mira.y||DN[d]!==G.mira.dir){ const moved=x!==G.mira.x||y!==G.mira.y; setMiraPos(pr.p); if(moved&&G.started&&!G.over) arrived(G.mira); } }
+      if(Array.isArray(pr.q)) for(const [sq,k,x,y,d,tx,ty] of pr.q){ if(sq>HS.ack){ HS.ack=sq; if(G.started&&!G.paused&&!G.over){ setMiraPos([x,y,d]); if(k==='at') actAt(G.mira,tx,ty); else act(G.mira); } } }
+    }
+    if((pr.go||0)!==HS.go){ HS.go=pr.go||0; if(!G.started) start(); }
+    if((pr.pq||0)!==HS.pq){ HS.pq=pr.pq||0; if(G.started&&!G.over){ G.paused=!G.paused; HS.autoPaused=false; } }
+    if((pr.rr||0)!==HS.rr){ HS.rr=pr.rr||0; if(G.started||G.over) restart(); }
+  }
+  pushPresence();
+}
+function applyWorld(w){
+  if(!w||w===lastW) return; lastW=w;
+  if(w.e!==G.epoch){ newGame(); lastW=w; G.epoch=w.e; setMiraPos(w.m); $('endcard').hidden=true; }
+  const hadPk=G.pocket.length, hadSteel=G.steelOpen, hadRoof=G.roofOpen;
+  for(const k in w.it) if(G.items[k]){ G.items[k].at=w.it[k][0]; G.items[k].taken=!!w.it[k][1]; }
+  [G.steelOpen,G.roofOpen,G.pipeFixed,G.oiled,G.painted,G.propLocked]=w.f.map(Boolean);
+  G.pocket=w.pk.slice(); G.time=w.t; G.wn=w.wn;
+  if(G.pocket.length>hadPk) chime(true);
+  if((G.steelOpen&&!hadSteel)||(G.roofOpen&&!hadRoof)){ thud(); G.shake=Math.max(G.shake,.4); }
+  if(w.tr>G.tremors){ G.tremors=w.tr; G.shake=1.15; rumble(1.4); for(let i=0;i<70;i++) G.dust.push(newDust(true)); }
+  for(const [id,who,t] of w.lg) if(id>G.lastLog){ G.lastLog=id; logRaw(who,t); if(who==='mira') G.mira.bubble={text:t,at:G.vt,dur:2.4+t.length*.05}; }
+  for(const [id,x,y,g,t] of w.rp) if(id>G.lastRp){ G.lastRp=id; G.ripples=G.ripples.filter(r=>!(r.x===x&&r.y===y)); G.ripples.push({era:'26',x,y,good:!!g,text:t,t0:G.vt}); chime(!!g); }
+  CL.reqs=CL.reqs.filter(r=>r.s>w.ack);
+  if(w.st&&!G.started) G.started=true;
+  G.paused=!!w.pz;
+  if(w.ov&&!G.over){ G.over=w.ov; if(w.ov==='lose'){ G.shake=2.4; rumble(2.6); } else chime(true); G.endAt=performance.now()+(w.ov==='win'?1900:2000); }
+}
+function clientSync(){
+  const pp=partner(); if(pp) partnerSeen=performance.now();
+  if(pp&&pp.pr&&pp.pr.w) applyWorld(pp.pr.w);
+  pushPresence();
+}
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function overlays(){
+  if(MODE==='local') return;
+  const pp=partner(), now=performance.now(), gone=!pp&&now-partnerSeen>2000;
+  const other=SEAT==='jan'?'Mira':'Jan', otherYr=SEAT==='jan'?'2026':'1995';
+  let show=false, text='', canStart=false;
+  if(!G.started&&!G.over){
+    show=true;
+    if(!pp) text=`Waiting for ${other}. On the other computer, open this same page, choose <b>Two screens</b>, type the game name <b>${esc(GAME)}</b>, and pick <b>${otherYr}</b>.`;
+    else { text=`${other} is here. ${SEAT==='jan'?"Start when you're both ready — you'll want to be talking to each other.":'Either of you can start.'}`; canStart=true; }
+  } else if(!G.over&&gone){
+    show=true; text=SEAT==='jan'?`Mira's screen has dropped out. The clock is stopped until she's back.`:`Jan's screen has dropped out. Waiting for it to come back…`;
+  }
+  put('lb-game',`Two screens · game “${esc(GAME)}”`); put('lb-title',SEAT==='jan'?"You're Jan, in 1995.":"You're Mira, in 2026."); put('lb-text',text); put('lb-note',Net.note);
+  if($('lobby').hidden===show) $('lobby').hidden=!show;
+  const pre=!G.started&&!G.over; if($('b-lbstart').hidden===pre) $('b-lbstart').hidden=!pre; if($('b-lbback').hidden===pre) $('b-lbback').hidden=!pre;
+  if($('b-lbstart').disabled===canStart) $('b-lbstart').disabled=!canStart;
+  const pz=G.paused&&G.started&&!G.over&&!show; if($('pausecard').hidden===pz) $('pausecard').hidden=!pz;
+}
+
+/* ====================================================================== INPUT */
+addEventListener('keydown',e=>{
+  if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')) return;
+  const k=e.key, kk=k.length===1?k.toLowerCase():k;
+  const gameKey=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Enter'].includes(k);
+  if(!G.started){ if((k==='Enter'||k===' ')&&MODE==='local'&&!$('intro').hidden){ e.preventDefault(); start(); } return; }
+  if(G.over){ if((k==='Enter'||k===' ')&&!$('endcard').hidden){ e.preventDefault(); restart(); } return; }
+  if(gameKey) e.preventDefault();
+  if(kk==='p'||k==='Escape'){ setPause(!G.paused); return; }
+  if(G.paused) return;
+  if(e.repeat&&(kk==='e'||k==='Enter'||k===' ')) return;
+  if(kk==='h'){ hint(); return; }
+  if(kk==='e'){ act(MODE==='local'?G.jan:meChar()); return; }
+  if(k==='Enter'||k===' '){ act(MODE==='local'?G.mira:meChar()); return; }
+  held.add(kk);
+  if(!e.repeat) for(const ch of [G.jan,G.mira]){ const d=km(ch)[kk]; if(d&&!ch.moving){ ch.path=[]; ch.pending=null; step(ch,d); } }
+});
+addEventListener('keyup',e=>{ const k=e.key; held.delete(k.length===1?k.toLowerCase():k); });
+addEventListener('blur',()=>held.clear());
+for(const era of ['95','26']) CV[era].addEventListener('click',e=>{
+  if(!G.started||G.paused||G.over) return; const r=CV[era].getBoundingClientRect();
+  goTo(era==='95'?G.jan:G.mira, Math.floor((e.clientX-r.left)/r.width*W), Math.floor((e.clientY-r.top)/r.height*H));
+});
+const btn=(id,fn)=>$(id).addEventListener('click',e=>{ e.currentTarget.blur(); fn(); });
+btn('b-start',start); btn('b-resume',()=>setPause(false)); btn('b-pause',()=>setPause(!G.paused)); btn('b-hint',hint);
+btn('b-re',restart); btn('b-snd',()=>{ SND=!SND; $('b-snd').textContent='Sound: '+(SND?'on':'off'); if(SND) ac(); });
+btn('a95',()=>act(G.jan)); btn('a26',()=>act(G.mira));
+btn('b-jan',()=>chooseSeat('jan')); btn('b-mira',()=>chooseSeat('mira')); btn('b-lbstart',start); btn('b-lbback',leaveSeat);
+$('gname').addEventListener('input',updLobby);
+if(window.ResizeObserver) new ResizeObserver(fit).observe(CV['95']); addEventListener('resize',fit);
+
+newGame(); fit(); requestAnimationFrame(frame); netInit();
+</script>
+</body>
+</html>
