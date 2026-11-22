@@ -103,6 +103,25 @@ canvas{display:block;width:100%;aspect-ratio:26/17;cursor:pointer;touch-action:m
 .netb{display:inline-block;font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
 .netb.on{border-color:var(--good);color:var(--good)}
 .stage.one{grid-template-columns:minmax(0,980px);justify-content:center}
+/* Onboarding tour */
+#tour{z-index:60;background:rgba(7,8,10,.97)}
+.tour{max-width:600px}
+.tour h2{margin-top:8px}
+.tour .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+@media(max-width:560px){.tour .two{grid-template-columns:1fr}}
+.tour .two>div{border:1px solid var(--line);border-radius:5px;padding:12px 14px;font-size:14px;color:#d2cec5}
+.tour .two .y{display:block;font-family:var(--disp);font-weight:700;font-size:17px;margin-bottom:4px}
+.tour ul{margin:0 0 12px;padding-left:18px;color:#d2cec5}
+.tour li{margin-bottom:5px}
+.tour .tip{border-left:2px solid var(--line);padding-left:12px;color:var(--mute);font-size:14px}
+.tour .seg{display:flex;gap:8px;margin:2px 0 14px}
+.tour .seg button{flex:1}
+.tour .seg button[aria-pressed="true"]{border-color:var(--fg);background:var(--s1);font-weight:700}
+.tour-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;flex-wrap:wrap}
+.tour-nav .quiet{background:none;border-color:transparent;color:var(--mute);text-decoration:underline;padding-left:0}
+.tour-nav .dots{display:flex;gap:6px}
+.tour-nav .dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.tour-nav .dots i.on{background:var(--fg)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -118,6 +137,7 @@ canvas{display:block;width:100%;aspect-ratio:26/17;cursor:pointer;touch-action:m
     <div id="pipwrap"><div class="lbl">Mira's way out</div><div class="pips" id="pips"></div></div>
     <div id="netwrap" hidden><div class="lbl">Two screens</div><div style="margin-top:5px"><span class="netb" id="netb">—</span></div></div>
     <div class="btns">
+      <button id="b-how">How to play <kbd>?</kbd></button>
       <button id="b-hint">Hint <kbd>H</kbd></button>
       <button id="b-pause">Pause <kbd>P</kbd></button>
       <button id="b-snd">Sound: on</button>
@@ -177,6 +197,16 @@ canvas{display:block;width:100%;aspect-ratio:26/17;cursor:pointer;touch-action:m
     <p id="lb-text">—</p>
     <p class="netnote" id="lb-note" style="margin-bottom:14px"></p>
     <div class="row"><button class="go" id="b-lbstart" disabled>Start</button><button id="b-lbback">Back</button></div>
+  </div></div>
+  <div class="overlay" id="tour" hidden role="dialog" aria-modal="true" aria-labelledby="tour-h"><div class="card tour">
+    <div class="lbl" id="tour-step"></div>
+    <h2 id="tour-h"></h2>
+    <div id="tour-body"></div>
+    <div class="tour-nav">
+      <button class="quiet" id="tour-skip">Skip intro</button>
+      <span class="dots" id="tour-dots" aria-hidden="true"></span>
+      <span class="row"><button id="tour-back">Back</button><button class="go" id="tour-next">Next</button></span>
+    </div>
   </div></div>
 </div>
 
@@ -1058,6 +1088,10 @@ function overlays(){
 addEventListener('keydown',e=>{
   if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')) return;
   const k=e.key, kk=k.length===1?k.toLowerCase():k;
+  if(!$('tour').hidden){ /* the tour is open: only it listens */
+    if(k==='Escape'){ e.preventDefault(); tourClose(); } else if(k==='ArrowRight'){ tourGo(1); } else if(k==='ArrowLeft'){ tourGo(-1); }
+    return; }
+  if(k==='?'){ e.preventDefault(); tourOpen(); return; }
   const gameKey=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Enter'].includes(k);
   if(!G.started){ if((k==='Enter'||k===' ')&&MODE==='local'&&!$('intro').hidden){ e.preventDefault(); start(); } return; }
   if(G.over){ if((k==='Enter'||k===' ')&&!$('endcard').hidden){ e.preventDefault(); restart(); } return; }
@@ -1085,7 +1119,69 @@ btn('b-jan',()=>chooseSeat('jan')); btn('b-mira',()=>chooseSeat('mira')); btn('b
 $('gname').addEventListener('input',updLobby);
 if(window.ResizeObserver) new ResizeObserver(fit).observe(CV['95']); addEventListener('resize',fit);
 
-newGame(); fit(); requestAnimationFrame(frame); netInit();
+/* ====================================================================== ONBOARDING TOUR
+   Skippable intro: story, who's who, the one rule, how to play. Shown on first visit (remembered in
+   localStorage), reopened any time with the "How to play" button or "?". */
+const TOUR_KEY='forlater.tour.seen';
+const W95='<b style="color:var(--warm)">Jan</b>', M26='<b style="color:var(--cold)">Mira</b>';
+const TOUR=[
+  {h:'A radio, and thirty-one years', b:()=>`
+    <p>Vrbna 7 is an old tenement. On the third floor there is one flat, and one landing outside it.</p>
+    <p>In <b style="color:var(--warm)">1995</b>, ${W95} is having an ordinary Tuesday evening at home. In <b style="color:var(--cold)">2026</b>, a gas main has gone, the stairs have fallen in, and ${M26} is trapped on that same floor. The building has twelve minutes left.</p>
+    <p>Somehow, an old radio lets them hear each other. That's all they have.</p>`},
+  {h:'Two people, one floor', b:()=>`
+    <div class="two">
+      <div><span class="y" style="color:var(--warm)">Jan · 1995 · the warm side</span>He can pick things up, carry them, leave them somewhere and change things. He can't see 2026 and doesn't know what's in her way until she tells him.</div>
+      <div><span class="y" style="color:var(--cold)">Mira · 2026 · the dark side</span>She can only use what has survived the thirty-one years in between. She can see what's blocking her, and has to explain it.</div>
+    </div>
+    <p>Get ${M26} out before the clock runs out. Her way out is blocked in four places. They're listed at the top of the screen and light up as you clear them.</p>`},
+  {h:'The one rule of the level', b:()=>`
+    <p>The flat was renovated in <b>2004</b>.</p>
+    <ul>
+      <li>Anything replaced, bricked up or cleared out in 2004 is <b>gone</b> by 2026.</li>
+      <li>Anything left alone is <b>still there</b>.</li>
+    </ul>
+    <p>So the question is never just "what can Jan do?" It's "where can Jan put this so that thirty-one years can't reach it?"</p>
+    <p class="tip">When Jan does something, a small tag appears in 2026: green if it survived, red if it didn't. Use the radio, because Jan can't see what Mira sees.</p>`},
+  {h:'How to play', b:()=>{
+    const one=tourMode==='one';
+    return `<div class="seg" role="group" aria-label="How are you playing?">
+      <button data-m="one" aria-pressed="${one}">One screen</button><button data-m="two" aria-pressed="${!one}">Two screens</button></div>`+
+    (one?`<ul>
+      <li>Both years are side by side. Share one keyboard or play both yourself.</li>
+      <li><b style="color:var(--warm)">Jan</b>: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to move, <kbd>E</kbd> to act.</li>
+      <li><b style="color:var(--cold)">Mira</b>: arrow keys to move, <kbd>Enter</kbd> to act.</li>
+      <li>You can also click anywhere to walk there, and click things to use them.</li></ul>`
+    :`<ul>
+      <li>Each of you opens this page on your own computer and picks a year. You see <b>only your own year</b>, so you'll have to describe things to each other. Talk out loud.</li>
+      <li>Both years move with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or the arrow keys, and act with <kbd>E</kbd> or <kbd>Enter</kbd>.</li>
+      <li>Type the same game name on both screens. Jan's screen runs the game, so keep that tab in front.</li></ul>`)+
+    `<p class="tip"><kbd>H</kbd> gives a hint (press again for a bigger one). <kbd>P</kbd> pauses. Everything said is kept in the radio log under the screens. Reopen this any time with <kbd>?</kbd>.</p>`; }}
+];
+let tourI=0, tourMode='one', tourPaused=false;
+function tourRender(){
+  const s=TOUR[tourI], last=tourI===TOUR.length-1;
+  $('tour-step').textContent=`How it works · ${tourI+1} of ${TOUR.length}`;
+  $('tour-h').textContent=s.h; $('tour-body').innerHTML=s.b();
+  $('tour-dots').innerHTML=TOUR.map((_,i)=>`<i class="${i===tourI?'on':''}"></i>`).join('');
+  $('tour-back').hidden=tourI===0; $('tour-skip').hidden=last;
+  $('tour-next').textContent=last?'Got it':'Next';
+  for(const b of $('tour-body').querySelectorAll('[data-m]')) b.addEventListener('click',()=>{ tourMode=b.dataset.m; tourRender(); $('tour-body').querySelector('[aria-pressed="true"]').focus(); });
+}
+function tourOpen(){
+  tourI=0; tourMode=MODE==='local'?'one':'two'; tourPaused=false;
+  if(MODE==='local'&&G.started&&!G.over&&!G.paused){ setPause(true); tourPaused=true; }
+  $('tour').hidden=false; tourRender(); $('tour-next').focus();
+}
+function tourClose(){
+  try{ localStorage.setItem(TOUR_KEY,'1'); }catch(e){}
+  $('tour').hidden=true; if(tourPaused){ tourPaused=false; setPause(false); }
+}
+function tourGo(d){ const n=tourI+d; if(n<0) return; if(n>=TOUR.length){ tourClose(); return; } tourI=n; tourRender(); }
+btn('tour-next',()=>tourGo(1)); btn('tour-back',()=>tourGo(-1)); btn('tour-skip',tourClose); btn('b-how',tourOpen);
+let tourSeen=false; try{ tourSeen=!!localStorage.getItem(TOUR_KEY); }catch(e){}
+
+newGame(); fit(); requestAnimationFrame(frame); netInit(); if(!tourSeen) tourOpen();
 </script>
 </body>
 </html>
