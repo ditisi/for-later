@@ -1158,18 +1158,19 @@ const TOUR=[
       <li>Type the same game name on both screens. Jan's screen runs the game, so keep that tab in front.</li></ul>`)+
     `<p class="tip"><kbd>H</kbd> gives a hint (press again for a bigger one). <kbd>P</kbd> pauses. Everything said is kept in the radio log under the screens. Reopen this any time with <kbd>?</kbd>.</p>`; }}
 ];
-let tourI=0, tourMode='one', tourPaused=false;
+let tourI=0, tourMode='one', tourPaused=false, tourList=TOUR;
 function tourRender(){
-  const s=TOUR[tourI], last=tourI===TOUR.length-1;
-  $('tour-step').textContent=`How it works · ${tourI+1} of ${TOUR.length}`;
+  const s=tourList[tourI], last=tourI===tourList.length-1, solo=tourList.length===1;
+  $('tour-step').textContent=solo?'Vrbna 7 · quick reference':`How it works · ${tourI+1} of ${tourList.length}`;
   $('tour-h').textContent=s.h; $('tour-body').innerHTML=s.b();
-  $('tour-dots').innerHTML=TOUR.map((_,i)=>`<i class="${i===tourI?'on':''}"></i>`).join('');
+  $('tour-dots').innerHTML=solo?'':tourList.map((_,i)=>`<i class="${i===tourI?'on':''}"></i>`).join('');
   $('tour-back').hidden=tourI===0; $('tour-skip').hidden=last;
   $('tour-next').textContent=last?'Got it':'Next';
   for(const b of $('tour-body').querySelectorAll('[data-m]')) b.addEventListener('click',()=>{ tourMode=b.dataset.m; tourRender(); $('tour-body').querySelector('[aria-pressed="true"]').focus(); });
 }
-function tourOpen(){
-  tourI=0; tourMode=MODE==='local'?'one':'two'; tourPaused=false;
+/* tourOpen(true) = the full first-visit tour; tourOpen() = just the "How to play" screen */
+function tourOpen(full){
+  tourList=full===true?TOUR:[TOUR[TOUR.length-1]]; tourI=0; tourMode=MODE==='local'?'one':'two'; tourPaused=false;
   if(MODE==='local'&&G.started&&!G.over&&!G.paused){ setPause(true); tourPaused=true; }
   $('tour').hidden=false; tourRender(); $('tour-next').focus();
 }
@@ -1177,11 +1178,11 @@ function tourClose(){
   try{ localStorage.setItem(TOUR_KEY,'1'); }catch(e){}
   $('tour').hidden=true; if(tourPaused){ tourPaused=false; setPause(false); }
 }
-function tourGo(d){ const n=tourI+d; if(n<0) return; if(n>=TOUR.length){ tourClose(); return; } tourI=n; tourRender(); }
-btn('tour-next',()=>tourGo(1)); btn('tour-back',()=>tourGo(-1)); btn('tour-skip',tourClose); btn('b-how',tourOpen); btn('b-how2',tourOpen);
+function tourGo(d){ const n=tourI+d; if(n<0) return; if(n>=tourList.length){ tourClose(); return; } tourI=n; tourRender(); }
+btn('tour-next',()=>tourGo(1)); btn('tour-back',()=>tourGo(-1)); btn('tour-skip',tourClose); btn('b-how',()=>tourOpen()); btn('b-how2',()=>tourOpen());
 let tourSeen=false; try{ tourSeen=!!localStorage.getItem(TOUR_KEY); }catch(e){}
 
-newGame(); fit(); requestAnimationFrame(frame); netInit(); if(!tourSeen) tourOpen();
+newGame(); fit(); requestAnimationFrame(frame); netInit(); if(!tourSeen) tourOpen(true);
 </script>
 </body>
 </html>
