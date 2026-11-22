@@ -367,7 +367,7 @@ const ZONE={
    Optional. In 2026 four little statues have been knocked off four plinths in the bathroom wall. Set them back in the
    right order and a tiled-over cupboard opens on the old gas valve: shutting it adds BONUS seconds to the clock.
    The order is random each game and is written on a framed rhyme in Jan's back room (1995), so Jan has to read it out. */
-const BONUS=180, WRONG_COST=10;
+const BONUS=180, WRONG_COST=15;
 const ST=[
   {id:'owl', name:'owl', clue:'the one who sees in the dark', look:"A little green-bronze owl. Round eyes, two tufts for ears."},
   {id:'hare',name:'hare',clue:'the one who never stands still', look:"A bronze hare, caught mid-leap, ears laid flat."},
@@ -519,7 +519,7 @@ function svValve(){
 }
 function janRhyme(){
   const [a,b,c,d]=G.sv.order.map(id=>STN[id].clue);
-  say(G.jan,`"Set them out left to right, as you face the wall: first ${a}, then ${b}, then ${c}, last ${d}." The architect's rhyme. There's one framed in every flat on this floor. I never did work out what it's for.`);
+  say(G.jan,`"The architect's rhyme. There's one framed in every flat on this floor. I never did work out what it's for. First ${a}, then ${b}, then ${c}, last ${d}."`);
 }
 function win(){ if(G.over) return; G.over='win'; say(G.mira,"It holds. I'm going down."); chime(true); G.endAt=performance.now()+1900; }
 function lose(){ if(G.over) return; G.over='lose'; G.shake=2.4; rumble(2.6); G.endAt=performance.now()+2000; }
