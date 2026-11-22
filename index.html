@@ -357,11 +357,29 @@ const HINTS={
 const ZONE={
   '26:big':"I'm in. It's all one room now — someone knocked the wall through. There's a chimney breast, and holes in the floor.",
   '26:corridor':()=>propOK()?"There's a post in the middle of the hall holding the ceiling up. Boxed in, painted over.":"The hall ceiling's come down. There's no getting past that.",
-  '26:bath':"The drying room's a bathroom now. Tiles everywhere.",
+  '26:bath':"The drying room's a bathroom now. Tiles everywhere — and four little statues lying about the floor, like they've been knocked off something.",
   '26:roof':()=>G.pipeFixed?"I'm on the roof. The fire escape's on the far side.":"I'm on the roof. The fire escape's on the far side — what's left of it.",
   '95:roof':"Freezing up here.",
   '95:drying':"Sheets on the line. Eva will kill me if I knock them down."
 };
+
+/* ====================================================================== BONUS PUZZLE: THE FOUR STATUES
+   Optional. In 2026 four little statues have been knocked off four plinths in the bathroom wall. Set them back in the
+   right order and a tiled-over cupboard opens on the old gas valve: shutting it adds BONUS seconds to the clock.
+   The order is random each game and is written on a framed rhyme in Jan's back room (1995), so Jan has to read it out. */
+const BONUS=180, WRONG_COST=10;
+const ST=[
+  {id:'owl', name:'owl', clue:'the one who sees in the dark', look:"A little green-bronze owl. Round eyes, two tufts for ears."},
+  {id:'hare',name:'hare',clue:'the one who never stands still', look:"A bronze hare, caught mid-leap, ears laid flat."},
+  {id:'cat', name:'cat', clue:'the one who always lands on her feet', look:"A little black cat, its tail curled round its paws."},
+  {id:'fish',name:'fish',clue:'the one who swims', look:"A blue-glazed fish, mouth open, tail flicked up."}];
+const STN=Object.fromEntries(ST.map(x=>[x.id,x]));
+const FLOORS=[[19,4],[24,3],[21,7],[24,8]], PLINTHS=[[19,1],[20,1],[21,1],[22,1]], VALVE=[25,7];
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function newStatues(){
+  const spots=shuffle([0,1,2,3]), at={}; ST.forEach((x,i)=>at[x.id]='f'+spots[i]);
+  return {at, home:Object.assign({},at), order:shuffle(ST.map(x=>x.id)), hold:null, solved:false, valve:false};
+}
 
 /* ====================================================================== STATE */
 let G;
@@ -372,6 +390,7 @@ function newGame(){
     items:{crowbar:{at:'drying',taken:false},key:{at:'hook',taken:false},wrench:{at:'drawer',taken:false},prop:{at:'back',taken:false}},
     jan:mk('95',9,6,'down'), mira:mk('26',3,6,'right'), pocket:[],
     steelOpen:false, roofOpen:false, pipeFixed:false, oiled:false, painted:false, propLocked:false,
+    limit:LIMIT, sv:newStatues(),
     seen:{}, picked:{}, waste:new Set(), ripples:[], dust:[], drips:[], dripT:0, shake:0, nextTremor:34, tremors:0,
     timers:[], hintObj:null, hintLvl:-1, script:[]};
   const S=[
@@ -473,6 +492,35 @@ function miraTake(sid){
   ripple('95',SPOTS[sid].cx,SPOTS[sid].y,true,'already happened — fixed in place');
   sys(`Mira has the ${NAME[it]}. In 1995 it can't be moved any more — for her, it has already happened.`);
 }
+/* the four statues */
+const statueAt=loc=>ST.find(x=>G.sv.at[x.id]===loc)||null;
+function svTake(loc,quiet){ const x=statueAt(loc); G.sv.at[x.id]='hand'; G.sv.hold=x.id; blip(); if(!quiet) say(G.mira,x.look); }
+function svPut(loc){ const id=G.sv.hold; G.sv.at[id]=loc; G.sv.hold=null; blip(); svCheck(); }
+function svSwap(loc){ const x=statueAt(loc), id=G.sv.hold; G.sv.at[id]=loc; G.sv.at[x.id]='hand'; G.sv.hold=x.id; blip(); }
+function svCheck(){
+  const row=[0,1,2,3].map(j=>statueAt('p'+j)); if(row.some(x=>!x)) return;
+  if(row.every((x,j)=>x.id===G.sv.order[j])){
+    G.sv.solved=true; G.shake=.4; if(sees('26')) thud(); chime(true);
+    say(G.mira,"The plinths lock with a heavy click. Something behind the tiles gives way — a narrow door has swung open in the east wall.");
+    ripple('26',VALVE[0],VALVE[1],true,'a door has opened');
+  } else {
+    for(const x of ST) G.sv.at[x.id]=G.sv.home[x.id];
+    G.time+=WRONG_COST; chime(false);
+    say(G.mira,"Nothing. Then a grinding noise, and all four statues drop off the plinths.");
+    sys(`Wrong order. The mechanism jammed and cost ${WRONG_COST} seconds.`);
+    ripple('26',VALVE[0],VALVE[1],false,`wrong order: −${WRONG_COST}s`);
+  }
+}
+function svValve(){
+  G.sv.valve=true; G.limit+=BONUS; G.shake=.3; if(sees('26')) thud(); chime(true);
+  say(G.mira,"The wheel turns, and the hiss from downstairs dies away. That's bought us a few minutes.");
+  sys(`The gas is shut off. +${Math.floor(BONUS/60)}:${String(BONUS%60).padStart(2,'0')} on the clock.`);
+  ripple('26',VALVE[0],VALVE[1],true,`gas off: +${Math.floor(BONUS/60)}:00`);
+}
+function janRhyme(){
+  const [a,b,c,d]=G.sv.order.map(id=>STN[id].clue);
+  say(G.jan,`"Set them out left to right, as you face the wall: first ${a}, then ${b}, then ${c}, last ${d}." The architect's rhyme. There's one framed in every flat on this floor. I never did work out what it's for.`);
+}
 function win(){ if(G.over) return; G.over='win'; say(G.mira,"It holds. I'm going down."); chime(true); G.endAt=performance.now()+1900; }
 function lose(){ if(G.over) return; G.over='lose'; G.shake=2.4; rumble(2.6); G.endAt=performance.now()+2000; }
 
@@ -505,6 +553,9 @@ ent('95',[[25,14]],{draw:c=>dPipe(c,'95'),act:()=>{
   return {label:'Look at the downpipe',run:()=>say(G.jan,"The collar's cracked. It's been dripping on the ladder bracket all autumn. I'd need the wrench from the kitchen drawer.")};
 }});
 ent('95',[[25,15]],{draw:c=>dLadder(c,'95'),act:look(JN,'Look at the fire escape',"The fire escape. Solid. A bit of rust on the top bracket, right where that drip lands.")});
+
+ent('95',[[14,1]],{block:true,draw:c=>dFrame(c),act:()=>({label:'Read the framed rhyme',run:janRhyme})});
+ent('95',[[20,1]],{act:look(JN,'Look at the wall',"Blank plaster behind the sheets. The caretaker swears the original builders left something in this wall. Nobody's ever found it.")});
 
 /* -- 2026 -- */
 ent('26',[[1,7]],{block:true,draw:c=>dRad26(c),act:()=>({label:'Reach behind the radiator',run:()=>say(G.mira,itemAt('radiator')
@@ -554,6 +605,23 @@ ent('26',[[25,15]],{draw:c=>dLadder(c,'26'),act:()=>({label:G.pipeFixed?'Climb d
   if(G.painted) s+=" Flakes of old green paint on what's left of the bracket. Didn't help.";
   if(G.oiled) s+=" Someone oiled these bolts once. Didn't help either.";
   say(G.mira,s);}})});
+
+FLOORS.forEach(([x,y],i)=>ent('26',[[x,y]],{draw:c=>{ const st=statueAt('f'+i); if(st) dStatue(c,st.id,x*T+T/2,y*T+T/2+2,1); },
+  act:()=>{ const st=statueAt('f'+i), h=G.sv.hold;
+    if(st) return h?{label:'Hands full',run:()=>say(G.mira,`I'm already carrying the ${STN[h].name}.`)}:{label:`Pick up the ${st.name} statue`,run:()=>svTake('f'+i)};
+    return h?{label:`Put the ${STN[h].name} down`,run:()=>svPut('f'+i)}:null; }}));
+PLINTHS.forEach(([x,y],j)=>ent('26',[[x,y]],{block:true,draw:c=>dPlinth(c,j),
+  act:()=>{ const loc='p'+j, st=statueAt(loc), h=G.sv.hold;
+    if(G.sv.solved) return {label:'Look at the plinth',run:()=>say(G.mira,"Locked in place.")};
+    if(st&&!h) return {label:`Lift the ${st.name} off the plinth`,run:()=>svTake(loc,true)};
+    if(st&&h) return {label:`Swap the ${STN[h].name} for the ${st.name}`,run:()=>svSwap(loc)};
+    if(h) return {label:`Set the ${STN[h].name} on the plinth`,run:()=>svPut(loc)};
+    return {label:'Look at the plinth',run:()=>say(G.mira,"Four little stone plinths set into the wall between the sink and the bath. Whoever tiled this room tiled round them. There's a worn patch on top of each, the size of a statue's base.")}; }}));
+ent('26',[VALVE],{draw:c=>dValveDoor(c),act:()=>{
+  if(G.sv.valve) return {label:'Look at the gas valve',run:()=>say(G.mira,"The gas valve, shut tight. The hiss from downstairs is quieter.")};
+  if(G.sv.solved) return {label:'Turn the gas valve',run:svValve};
+  return {label:'Try the little tiled door',run:()=>say(G.mira,"A narrow door in the east wall, tiled over, the seam grouted shut. No handle. Whatever opens it isn't here. Maybe the plinths are the lock.")};
+}});
 
 const IDX={'95':{},'26':{}};
 for(const era of ['95','26']) for(const e of ENTS[era]) for(const [x,y] of e.tiles){ const k=x+','+y; (IDX[era][k]=IDX[era][k]||[]).push(e); }
@@ -657,7 +725,7 @@ function update(dt){
   while(G.script.length&&G.script[0].t<=G.time){ const s=G.script.shift(); if(s.w==='sys') sys(s.x); else say(s.w==='jan'?G.jan:G.mira,s.x); }
   if(G.time>=G.nextTremor) tremor();
   updChar(G.jan,dt); if(MODE==='local') updChar(G.mira,dt);
-  if(G.time>=LIMIT) lose();
+  if(G.time>=G.limit) lose();
 }
 function fx(dt){
   G.vt+=dt; G.shake=Math.max(0,G.shake-dt);
@@ -787,6 +855,35 @@ function dRubble(c){ for(let y=11;y<=12;y++) for(let x=15;x<=17;x++){ const X=x*
   line(c,X+3,Y+hash(x,y,30)*T,X+T-2,Y+hash(x,y,31)*T,'#7a4a2a',1); } }
 function dProp26(c){ const X=16*T,Y=11*T; c.fillStyle='rgba(0,0,0,.35)'; c.fillRect(X+8,Y+19,12,4); box(c,X+6,Y+3,12,18,'#d6cdb4',1.5); for(let i=0;i<5;i++) line(c,X+6,Y+6+i*3.2,X+10,Y+6+i*3.2,'#6c6252',.7); }
 function dBath(c){ const X=23*T,Y=T; box(c,X+1,Y-2,2*T-2,T-2,'#cfd6d9',5); box(c,X+4,Y+1,2*T-8,T-8,'#9aa2a6',4); c.fillStyle='#bfb8aa'; c.fillRect(X+12,Y+4,8,5); }
+function dStatue(c,id,cx,cy,k){
+  c.save(); c.translate(cx,cy); c.scale(k,k); c.lineCap='round';
+  c.fillStyle='rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(0,6.5,6.5,2,0,0,Math.PI*2); c.fill();
+  const tri=(x1,y1,x2,y2,x3,y3,col)=>{ c.fillStyle=col; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2); c.lineTo(x3,y3); c.closePath(); c.fill(); };
+  const el=(x,y,rx,ry,col,rot)=>{ c.fillStyle=col; c.beginPath(); c.ellipse(x,y,rx,ry,rot||0,0,Math.PI*2); c.fill(); };
+  if(id==='owl'){ box(c,-5,-7,10,13,'#6f8f7a',4); tri(-5,-6,-2.5,-6,-5,-10,'#5d7a68'); tri(5,-6,2.5,-6,5,-10,'#5d7a68');
+    el(-2.2,-3,2,2,'#f2ead2'); el(2.2,-3,2,2,'#f2ead2'); el(-2.2,-3,.9,.9,'#1b1b1b'); el(2.2,-3,.9,.9,'#1b1b1b'); tri(-1,-1,1,-1,0,1.4,'#d9b34a'); }
+  else if(id==='hare'){ el(0,2,5.5,4.2,'#a67c52'); el(3.6,-1.6,3,2.8,'#b98d5f'); el(2.4,-8,1.2,4.2,'#a67c52',.15); el(5,-7.4,1.2,4.2,'#a67c52',.4); el(-5.4,2.6,1.6,1.6,'#efe6d3'); el(4.6,-2,.7,.7,'#1b1b1b'); }
+  else if(id==='cat'){ el(0,2.5,5,4,'#2c3340'); el(0,-2.6,3.8,3.4,'#2c3340'); tri(-3.6,-4,-1.4,-5.4,-3.8,-8.2,'#2c3340'); tri(3.6,-4,1.4,-5.4,3.8,-8.2,'#2c3340');
+    c.strokeStyle='#2c3340'; c.lineWidth=2; c.beginPath(); c.moveTo(4.5,4.5); c.quadraticCurveTo(9.5,3,7.4,-1); c.stroke(); el(-1.4,-2.8,.8,.8,'#e8c75a'); el(1.4,-2.8,.8,.8,'#e8c75a'); }
+  else { el(0,0,6.2,3.6,'#4b86b4'); tri(-5,0,-10,-4,-10,4,'#3c6f99'); tri(-1,-3,3,-3,1,-6.4,'#3c6f99'); el(3.2,-.8,1,1,'#f2ead2'); el(3.4,-.8,.45,.45,'#1b1b1b'); }
+  c.restore();
+}
+function dPlinth(c,j){
+  const X=PLINTHS[j][0]*T, Y=T, st=statueAt('p'+j);
+  box(c,X+3,Y+10,T-6,T-12,'#8d8a82',2); box(c,X+2,Y+8,T-4,4,'#a29f96',1.5);
+  if(G.sv.solved){ c.strokeStyle='rgba(226,200,100,.85)'; c.lineWidth=1.2; c.strokeRect(X+2.5,Y+8.5,T-5,T-10); }
+  if(st) dStatue(c,st.id,X+T/2,Y+8,1);
+}
+function dValveDoor(c){
+  const X=VALVE[0]*T, Y=VALVE[1]*T;
+  if(G.sv.solved){ c.fillStyle='#0c0f11'; c.fillRect(X-1,Y+2,T-1,T-4); c.strokeStyle=G.sv.valve?'#8fd0a4':'#d9b34a'; c.lineWidth=1.6; const cx=X+T/2-3, cy=Y+T/2; c.beginPath(); c.arc(cx,cy,5.5,0,Math.PI*2); c.stroke(); for(let a=0;a<3;a++){ const r=a*Math.PI/3+(G.sv.valve?.4:0); line(c,cx-Math.cos(r)*5.5,cy-Math.sin(r)*5.5,cx+Math.cos(r)*5.5,cy+Math.sin(r)*5.5,c.strokeStyle,1.2); } return; }
+  box(c,X-1,Y+2,T-1,T-4,'#b9c0c3',1); line(c,X-1,Y+T/2,X+T-2,Y+T/2,'rgba(0,0,0,.18)',.8); line(c,X+T/2-1,Y+2,X+T/2-1,Y+T-2,'rgba(0,0,0,.18)',.8);
+  c.strokeStyle='#6f787c'; c.lineWidth=1.2; c.strokeRect(X-.5,Y+2.5,T-2,T-5); box(c,X+T-9,Y+T/2-2,4,4,'#b08a3e',1);
+}
+function dFrame(c){
+  const X=14*T, Y=T; box(c,X+4,Y+3,T-8,T-9,'#6b4a2b',1.5); box(c,X+6,Y+5,T-12,T-13,'#d9c8a0',1);
+  for(let i=0;i<4;i++) line(c,X+8,Y+8+i*2.6,X+T-8-(i%2)*2,Y+8+i*2.6,'#6b5a3a',.9);
+}
 function dSink(c){ const X=18*T,Y=T; box(c,X+3,Y-2,T-6,14,'#cfd6d9',3); line(c,X+6,Y+2,X+15,Y+9,'#5d666b',1); }
 function dSteel(c){ const X=6*T,Y=5*T; if(G.steelOpen){ box(c,X+T-4,Y-T+4,4,T,'#6d777e',1); return; } box(c,X+1,Y,T-2,T,'#6d777e',1); c.fillStyle='#4a5258'; for(const [a,b] of [[4,4],[T-5,4],[4,T-5],[T-5,T-5]]) c.fillRect(X+a,Y+b,1.6,1.6); line(c,X+5,Y+8,X+14,Y+15,'rgba(255,255,255,.18)',.8); }
 function dRoofDoor(c){ const X=21*T,Y=13*T; if(G.roofOpen){ c.fillStyle='#0c0f11'; c.fillRect(X+2,Y,T-4,T); return; } box(c,X+2,Y,T-4,T,'#59636a',1); box(c,X+T/2-3,Y+T/2-1,6,6,'#b08a3e',1); c.strokeStyle='#b08a3e'; c.lineWidth=1.2; c.beginPath(); c.arc(X+T/2,Y+T/2-1,2.4,Math.PI,0); c.stroke(); }
@@ -820,8 +917,8 @@ function dChar(c,ch){
   const [dx,dy]=DIRS[ch.dir];
   c.fillStyle=L.hair; c.beginPath(); c.arc(x+dx*1.2,y-3+dy*1.2,4.7,0,Math.PI*2); c.fill();
   if(ch.dir!=='up'){ c.fillStyle=L.skin; c.beginPath(); c.arc(x+dx*2.6,y-2+dy*2.4,3.1,0,Math.PI*2); c.fill(); }
-  const it=ch===G.jan?ch.hand:G.pocket[G.pocket.length-1];
-  if(it) icon(c,it,x+9,y+5,.55);
+  if(ch===G.mira&&G.sv.hold) dStatue(c,G.sv.hold,x+9,y+3,.7);
+  else { const it=ch===G.jan?ch.hand:G.pocket[G.pocket.length-1]; if(it) icon(c,it,x+9,y+5,.55); }
 }
 function wrap(c,text,maxW){ const words=text.split(' '), out=[]; let cur=''; for(const w of words){ const t=cur?cur+' '+w:w; if(c.measureText(t).width>maxW&&cur){ out.push(cur); cur=w; } else cur=t; } if(cur) out.push(cur); return out; }
 /* Per-frame layout: text boxes claim screen space so they never draw on top of each other.
@@ -909,10 +1006,10 @@ function put(id,html,attr){ const k=id+(attr||''); if(lastHud[k]===html) return;
 function nextObj(){ if(!G.steelOpen) return 'door'; if(!G.roofOpen&&!has('key')) return 'key'; if(!propOK()) return 'hall'; if(!G.roofOpen) return 'roofdoor'; if(!G.pipeFixed) return 'ladder'; return 'climb'; }
 function fmtClock(sec){ const m=CLOCK0+Math.floor(sec/60); return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
 function hud(){
-  const left=Math.max(0,LIMIT-G.time), low=left<90;
+  const left=Math.max(0,G.limit-G.time), low=left<90;
   put('tv',`${Math.floor(left/60)}:${String(Math.floor(left%60)).padStart(2,'0')}`);
   put('tv',low?'tv low':'tv','className');
-  $('tb').style.width=(left/LIMIT*100).toFixed(2)+'%'; put('tb',low?'low':'','className');
+  $('tb').style.width=(left/G.limit*100).toFixed(2)+'%'; put('tb',low?'low':'','className');
   const P=[['Flat door',G.steelOpen?'done':availToMira('crowbar')?'ready':''],['Roof key',G.roofOpen?'done':availToMira('key')?'ready':''],['Hall',propOK()?'done':''],['Fire escape',G.pipeFixed?'done':'']];
   put('pips',P.map(([l,s])=>`<span class="pip ${s}">${s==='done'?'✓ ':''}${l}</span>`).join(''));
   put('nowline',MODE==='host'?`<b>Now</b>You can't see 2026. Mira has to tell you what's in her way — and you have to tell her what you've done.`:`<b>Now</b>${G.started?OBJ[nextObj()]:'Press Start.'}`);
@@ -921,7 +1018,8 @@ function hud(){
   if(!hn){ const pp=partner(), o=SEAT==='jan'?'Mira · 2026':'Jan · 1995'; put('netb',pp?`● ${o} is connected`:`○ waiting for ${o}`); put('netb',pp?'netb on':'netb','className'); }
   put('b-pause',G.paused?'Resume <kbd>P</kbd>':'Pause <kbd>P</kbd>');
   put('h95',G.jan.hand?`Holding <b>${NAME[G.jan.hand]}</b>`:'Hands empty');
-  put('h26',G.pocket.length?`Carrying <b>${G.pocket.map(i=>NAME[i]).join(', ')}</b>`:'Pockets empty');
+  const carry=[...G.pocket.map(i=>NAME[i]),...(G.sv.hold?[STN[G.sv.hold].name+' statue']:[])];
+  put('h26',carry.length?`Carrying <b>${carry.join(', ')}</b>`:'Pockets empty');
   for(const [id,ch] of [['a95',G.jan],['a26',G.mira]]){ const t=ch.target; put(id,t?t.label:'Nothing in reach','textContent'); const dis=!t||!G.started||G.paused||!!G.over; if($(id).disabled!==dis) $(id).disabled=dis; }
 }
 function hint(){
@@ -960,7 +1058,7 @@ function showEnd(){
       <p style="color:var(--mute)">In 1995, Jan turns the radio off and sits in the kitchen for a long time. Eva comes home on Thursday. In 2001 they have a daughter, and he says he'd like to call her Mira. He never says why.</p>
       <button class="go" id="b-again">Play again</button>`;
   } else {
-    B.innerHTML=`<div class="lbl">2026 · 04:00</div>
+    B.innerHTML=`<div class="lbl">2026 · ${fmtClock(G.limit)}</div>
       <h2>Vrbna 7 came down with Mira still inside.</h2>
       <p>In 1995 the radio goes quiet in the middle of a sentence. Jan leaves it on all night anyway.</p>
       <p style="color:var(--mute)">Everything you worked out still holds — the building is the same every time.</p>
@@ -1025,7 +1123,7 @@ function worldSnap(){
   const it={}; for(const k in G.items) it[k]=[G.items[k].at,G.items[k].taken?1:0];
   return {e:G.epoch, st:G.started?1:0, ov:G.over||0, pz:G.paused?1:0, t:Math.round(G.time*5)/5, it,
     f:[G.steelOpen,G.roofOpen,G.pipeFixed,G.oiled,G.painted,G.propLocked].map(b=>b?1:0),
-    pk:G.pocket.slice(), ack:HS.ack, tr:G.tremors, wn:G.waste.size, m:[G.mira.x,G.mira.y,DI[G.mira.dir]],
+    pk:G.pocket.slice(), sv:{a:G.sv.at,h:G.sv.hold,s:G.sv.solved?1:0,v:G.sv.valve?1:0,l:G.limit}, ack:HS.ack, tr:G.tremors, wn:G.waste.size, m:[G.mira.x,G.mira.y,DI[G.mira.dir]],
     lg:G.logTail.map(l=>[l.id,l.w,l.t]), rp:G.rTail.map(r=>[r.id,r.x,r.y,r.good?1:0,r.text])};
 }
 function pushPresence(force){
@@ -1060,6 +1158,7 @@ function applyWorld(w){
   for(const k in w.it) if(G.items[k]){ G.items[k].at=w.it[k][0]; G.items[k].taken=!!w.it[k][1]; }
   [G.steelOpen,G.roofOpen,G.pipeFixed,G.oiled,G.painted,G.propLocked]=w.f.map(Boolean);
   G.pocket=w.pk.slice(); G.time=w.t; G.wn=w.wn;
+  if(w.sv){ G.sv.at=Object.assign({},w.sv.a); G.sv.hold=w.sv.h; G.sv.solved=!!w.sv.s; G.sv.valve=!!w.sv.v; G.limit=w.sv.l; }
   if(G.pocket.length>hadPk) chime(true);
   if((G.steelOpen&&!hadSteel)||(G.roofOpen&&!hadRoof)){ thud(); G.shake=Math.max(G.shake,.4); }
   if(w.tr>G.tremors){ G.tremors=w.tr; G.shake=1.15; rumble(1.4); for(let i=0;i<70;i++) G.dust.push(newDust(true)); }

@@ -36,6 +36,7 @@ The third floor of a tenement. A gas main has gone in 2026 and the building has 
 2. **The roof key.** Jan's kitchen was ripped out, but the chimney breast is in the same place in both years. Key on a nail up the flue.
 3. **The hall.** The hall ceiling is down in 2026 and already cracked in 1995. Wedge the spare timber from the back room under the crack.
 4. **The fire escape.** It has rusted off in 2026. Oil and paint don't last thirty-one years; refitting the cracked downpipe collar that drips on it does (the wrench is in the kitchen drawer).
+5. **Bonus: the gas valve (optional, +3:00).** Four statues have fallen off four plinths in the 2026 bathroom wall. Put them back in the right order and a tiled-over cupboard opens on the old gas valve. The order is random each game; it's on a framed rhyme in Jan's back room, described by trait ("the one who swims"), so Jan reads it out and Mira has to work out which statue is which. A wrong order drops the statues and costs 10 seconds.
 
 </details>
 
@@ -44,6 +45,7 @@ The third floor of a tenement. A gas main has gone in 2026 and the building has 
 Everything is in `index.html`, split into sections by banner comments:
 
 - **WORLD** — the two map grids (`MAPS['95']`, `MAPS['26']`) and room regions.
+- **BONUS PUZZLE: THE FOUR STATUES** — the optional statue puzzle and its tuning constants (`BONUS`, `WRONG_COST`).
 - **ITEMS & SPOTS** — the places Jan can leave things, and whether each survives to 2026 (`good`, `fate`).
 - **STATE** — `G`, the whole game state, and `newGame()`.
 - **AUDIO**, **TALK** — sounds, the radio log, and the rings that show what changed.
